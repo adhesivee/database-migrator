@@ -14,7 +14,6 @@ import java.sql.SQLException;
 /**
  * Created by albert on 15-8-2017.
  */
-@RunWith(Arquillian.class)
 public class HypersqlTest extends BaseIntegration {
 
     @Test
