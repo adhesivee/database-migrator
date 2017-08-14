@@ -13,6 +13,7 @@ This is only meant for simple database structures. It will not support database 
 
 ## Supported databases
 
+- H2
 - HyperSQL
 - MySQL
 - PostgreSQL
