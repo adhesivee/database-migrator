@@ -11,13 +11,13 @@ import java.util.function.Consumer;
  */
 public class Table {
     private String tableName;
-    private List<Column> columns = new ArrayList<>();
+    private List<Column> newColumns = new ArrayList<>();
     private Collection<ForeignKey> foreignKeys = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
         tableName = tableBuilder.getTableName();
-        tableBuilder.getColumns()
-                .forEach(column -> columns.add(column.build()));
+        tableBuilder.getNewColumns()
+                .forEach(column -> newColumns.add(column.build()));
 
         tableBuilder.getForeignColumnKeys()
                 .forEach(foreignColumnKey -> foreignKeys.add(foreignColumnKey.build()));
@@ -27,8 +27,8 @@ public class Table {
         return tableName;
     }
 
-    public List<Column> getColumns() {
-        return columns;
+    public List<Column> getNewColumns() {
+        return newColumns;
     }
 
     public Collection<ForeignKey> getForeignKeys() {
@@ -37,7 +37,7 @@ public class Table {
 
     public static class Builder {
         private String tableName;
-        private List<Column.Builder> addColumnBuilders = new ArrayList<>();
+        private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> removeColumnBuilders = new ArrayList<>();
         private Collection<ForeignKey.Builder> foreignColumnKeys = new ArrayList<>();
 
@@ -48,7 +48,7 @@ public class Table {
         private Column.Builder addNewColumn(String columnName, Column.TYPE type) {
             Column.Builder builder = new Column.Builder(columnName, type);
 
-            addColumnBuilders.add(builder);
+            newColumnBuilders.add(builder);
             return builder;
         }
 
@@ -108,8 +108,8 @@ public class Table {
             return tableName;
         }
 
-        public List<Column.Builder> getColumns() {
-            return addColumnBuilders;
+        public List<Column.Builder> getNewColumns() {
+            return newColumnBuilders;
         }
 
         public Table build() {

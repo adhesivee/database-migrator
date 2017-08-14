@@ -3,7 +3,6 @@ package nl.myndocs.database.migrator.integration;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.profile.MySQL;
 
 import java.sql.*;
 
@@ -32,13 +31,13 @@ public abstract class BaseIntegration {
     public Migration buildMigration() {
         Migration.Builder builder = new Migration.Builder();
 
-        builder.table("some_table")
+        builder.addTable("some_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR)
                 .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
                 .addColumn("some_uuid", Column.TYPE.UUID);
 
-        builder.table("some_other_table")
+        builder.addTable("some_other_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("some_table_id", Column.TYPE.INTEGER)
                 .addColumn("name", Column.TYPE.VARCHAR, column -> {

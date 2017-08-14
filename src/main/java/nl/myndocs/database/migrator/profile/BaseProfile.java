@@ -15,12 +15,12 @@ import java.sql.Statement;
 public abstract class BaseProfile implements Profile {
     public void createDatabase(Connection connection, Migration migration) {
         try {
-            for (Table table : migration.getTables()) {
+            for (Table table : migration.getNewTables()) {
                 Statement statement = connection.createStatement();
                 StringBuilder stringBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
 
                 int count = 0;
-                for (Column column : table.getColumns()) {
+                for (Column column : table.getNewColumns()) {
                     if (count > 0) {
                         stringBuilder.append(",\n");
                     }

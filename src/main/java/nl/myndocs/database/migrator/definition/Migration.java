@@ -7,28 +7,28 @@ import java.util.List;
  * Created by albert on 13-8-2017.
  */
 public class Migration {
-    private List<Table> tables = new ArrayList<>();
+    private List<Table> newTables = new ArrayList<>();
 
     private Migration(Builder builder) {
-        builder.getTables()
-                .forEach(table -> tables.add(table.build()));
+        builder.getNewTables()
+                .forEach(table -> newTables.add(table.build()));
     }
 
-    public List<Table> getTables() {
-        return tables;
+    public List<Table> getNewTables() {
+        return newTables;
     }
 
     public static class Builder {
-        private List<Table.Builder> tableBuilders = new ArrayList<>();
+        private List<Table.Builder> newTables = new ArrayList<>();
 
-        public Table.Builder table(String tableName) {
+        public Table.Builder addTable(String tableName) {
             Table.Builder builder = new Table.Builder(tableName);
-            tableBuilders.add(builder);
+            newTables.add(builder);
             return builder;
         }
 
-        public List<Table.Builder> getTables() {
-            return tableBuilders;
+        public List<Table.Builder> getNewTables() {
+            return newTables;
         }
 
         public Migration build() {
