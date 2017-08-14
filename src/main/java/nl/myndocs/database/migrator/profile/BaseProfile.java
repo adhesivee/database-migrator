@@ -8,6 +8,8 @@ import nl.myndocs.database.migrator.definition.Table;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by albert on 15-8-2017.
@@ -28,8 +30,7 @@ public abstract class BaseProfile implements Profile {
                     stringBuilder.append(
                             column.getColumnName() + " " +
                                     getNativeColumnDefinition(column) + " " +
-                                    // @TODO: don't assume it is always a String / (VAR)CHAR value
-                                    (column.getDefaultValue() != null ? "DEFAULT '" + column.getDefaultValue() + "'" : "") + " " +
+                                    getDefaultValue(column) + " " +
                                     (column.isNotNull() ? "NOT NULL" : "") + " " +
                                     (column.isPrimary() ? "PRIMARY KEY" : "") + " "
                     );
@@ -70,6 +71,19 @@ public abstract class BaseProfile implements Profile {
 
     protected abstract String getNativeColumnDefinition(Column column);
 
+    protected String getDefaultValue(Column column) {
+        String quote = "";
+
+        List<Column.TYPE> quotedTypes = Arrays.asList(
+                Column.TYPE.CHAR,
+                Column.TYPE.VARCHAR
+        );
+        if (quotedTypes.contains(column.getType())) {
+            quote = "'";
+        }
+
+        return (column.getDefaultValue() != null ? "DEFAULT " + quote + column.getDefaultValue() + quote + "" : "");
+    }
     protected String getWithSizeIfPossible(Column column) {
         if (column.getSize() != null) {
             return "(" + column.getSize() + ")";
