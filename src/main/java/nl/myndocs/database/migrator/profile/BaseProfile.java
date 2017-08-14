@@ -28,7 +28,10 @@ public abstract class BaseProfile implements Profile {
                     stringBuilder.append(
                             column.getColumnName() + " " +
                                     getNativeColumnDefinition(column) + " " +
-                                    (column.isPrimary() ? "PRIMARY KEY" : "")
+                                    // @TODO: don't assume it is always a String / (VAR)CHAR value
+                                    (column.getDefaultValue() != null ? "DEFAULT '" + column.getDefaultValue() + "'" : "") + " " +
+                                    (column.isNotNull() ? "NOT NULL" : "") + " " +
+                                    (column.isPrimary() ? "PRIMARY KEY" : "") + " "
                     );
 
                     count++;

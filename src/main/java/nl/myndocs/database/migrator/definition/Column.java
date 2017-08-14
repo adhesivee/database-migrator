@@ -14,6 +14,7 @@ public class Column {
     private boolean isNotNull = false;
     private TYPE type;
     private Integer size;
+    private String defaultValue;
 
     private Column(Builder builder) {
         columnName = builder.getColumnName();
@@ -22,6 +23,7 @@ public class Column {
         isNotNull = builder.isNotNull();
         type = builder.getType();
         size = builder.getSize();
+        defaultValue = builder.getDefaultValue();
     }
 
     public String getColumnName() {
@@ -48,6 +50,10 @@ public class Column {
         return size;
     }
 
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+
     public static class Builder {
         private String columnName;
         private boolean primary = false;
@@ -55,7 +61,7 @@ public class Column {
         private TYPE type;
         private boolean notNull;
         private Integer size = null;
-
+        private String defaultValue;
 
         public Builder(String columnName, Column.TYPE type) {
             this.columnName = columnName;
@@ -70,6 +76,12 @@ public class Column {
 
         public Builder autoIncrement(boolean autoIncrement) {
             this.autoIncrement = autoIncrement;
+
+            return this;
+        }
+
+        public Builder defaultValue(String value) {
+            this.defaultValue = value;
 
             return this;
         }
@@ -107,6 +119,10 @@ public class Column {
 
         public Integer getSize() {
             return size;
+        }
+
+        public String getDefaultValue() {
+            return defaultValue;
         }
 
         public Column build() {

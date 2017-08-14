@@ -34,6 +34,7 @@ public abstract class BaseIntegration {
         builder.addTable("some_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR)
+                .addColumn("name_non_null", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default"))
                 .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
                 .addColumn("some_uuid", Column.TYPE.UUID);
 
