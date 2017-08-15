@@ -17,6 +17,7 @@ public class Column {
     private Optional<TYPE> type;
     private Optional<Integer> size;
     private Optional<String> defaultValue;
+    private Optional<String> rename;
 
     private Column(Builder builder) {
         columnName = builder.getColumnName();
@@ -26,6 +27,7 @@ public class Column {
         type = builder.getType();
         size = builder.getSize();
         defaultValue = builder.getDefaultValue();
+        rename = builder.getRename();
     }
 
     public String getColumnName() {
@@ -34,6 +36,10 @@ public class Column {
 
     public Optional<Boolean> getPrimary() {
         return primary;
+    }
+
+    public Optional<String> getRename() {
+        return rename;
     }
 
     public Optional<Boolean> getAutoIncrement() {
@@ -64,6 +70,7 @@ public class Column {
         private Optional<Boolean> notNull = Optional.empty();
         private Optional<Integer> size = Optional.empty();
         private Optional<String> defaultValue = Optional.empty();
+        private Optional<String> rename = Optional.empty();
 
         public Builder(String columnName, Column.TYPE type) {
             this.columnName = columnName;
@@ -72,6 +79,12 @@ public class Column {
 
         public Builder(String columnName) {
             this.columnName = columnName;
+        }
+
+        public Builder rename(String name) {
+            rename = Optional.ofNullable(name);
+
+            return this;
         }
 
         public Builder type(Column.TYPE type) {
@@ -112,6 +125,10 @@ public class Column {
 
         public String getColumnName() {
             return columnName;
+        }
+
+        public Optional<String> getRename() {
+            return rename;
         }
 
         public Optional<Boolean> getPrimary() {

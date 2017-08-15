@@ -3,8 +3,12 @@ package nl.myndocs.database.migrator.integration;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
+import nl.myndocs.database.migrator.profile.Profile;
 
 import java.sql.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by albert on 14-8-2017.
@@ -74,4 +78,43 @@ public abstract class BaseIntegration {
             return acquireConnection(connectionUri, username, password);
         }
     }
+
+    public void testRenamingWithDefaults(Connection connection, Profile profile) throws ClassNotFoundException, SQLException {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("test_rename_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("fixed_name", Column.TYPE.VARCHAR)
+                .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
+
+
+        profile.createDatabase(
+                connection,
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("test_rename_table")
+                .changeColumn("name", column -> column.rename("renamed"));
+
+        profile.createDatabase(
+                connection,
+                builder.build()
+        );
+
+        Statement statement = connection.createStatement();
+        statement.execute("INSERT INTO test_rename_table (fixed_name) VALUES ('FIXED')");
+        statement.execute("SELECT renamed FROM test_rename_table");
+
+        ResultSet resultSet = statement.getResultSet();
+        assertTrue(resultSet.next());
+        String defaultValue = resultSet.getString(1);
+        assertEquals("default-value", defaultValue);
+
+        statement.close();
+
+        connection.close();
+    }
+
 }

@@ -1,7 +1,6 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.profile.H2;
-import nl.myndocs.database.migrator.profile.HyperSQL;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -13,13 +12,7 @@ import java.sql.SQLException;
 public class H2Test extends BaseIntegration {
     @Test
     public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
-        Class.forName("org.h2.Driver");
-
-        Connection connection = acquireConnection(
-                "jdbc:h2:mem:integration;DB_CLOSE_DELAY=-1",
-                "",
-                ""
-        );
+        Connection connection = getConnection();
 
         new H2().createDatabase(
                 connection,
@@ -27,5 +20,20 @@ public class H2Test extends BaseIntegration {
         );
 
         performIntegration(connection);
+    }
+
+    @Test
+    public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
+        super.testRenamingWithDefaults(getConnection(), new H2());
+    }
+
+    public Connection getConnection() throws ClassNotFoundException {
+        Class.forName("org.h2.Driver");
+
+        return acquireConnection(
+                "jdbc:h2:mem:integration;DB_CLOSE_DELAY=-1",
+                "",
+                ""
+        );
     }
 }

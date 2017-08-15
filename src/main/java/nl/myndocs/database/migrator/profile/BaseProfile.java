@@ -65,19 +65,26 @@ public abstract class BaseProfile implements Profile {
                 }
 
                 if (table.getChangeColumns().size() > 0) {
-                    StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
 
                     for (Column column : table.getChangeColumns()) {
-                        if (column.getType() != null) {
+                        if (column.getType().isPresent()) {
+                            StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
                             alterTableQueryBuilder.append(getAlterColumnKey() + " COLUMN " + column.getColumnName() + " " + getAlterType() + " " + getNativeColumnDefinition(column));
+                            System.out.println(alterTableQueryBuilder.toString());
+                            statement.execute(alterTableQueryBuilder.toString());
                         }
                     }
 
-                    System.out.println(alterTableQueryBuilder.toString());
-                    statement.execute(alterTableQueryBuilder.toString());
+                    statement.close();
+
+                    for (Column column : table.getChangeColumns()) {
+                        if (column.getRename().isPresent()) {
+                            changeColumnName(connection, table, column);
+                        }
+                    }
+
                 }
 
-                statement.close();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -115,6 +122,9 @@ public abstract class BaseProfile implements Profile {
 
         return "";
     }
+
+    // @TODO: This should be solved more generic
+    protected abstract void changeColumnName(Connection connection, Table table, Column column) throws SQLException;
 
     protected String getWithSizeOrDefault(Column column, String defaultValue) {
         if (column.getSize().isPresent()) {
