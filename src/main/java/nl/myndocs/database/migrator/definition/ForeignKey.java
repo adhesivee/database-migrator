@@ -2,6 +2,7 @@ package nl.myndocs.database.migrator.definition;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * Created by albert on 13-8-2017.
@@ -10,11 +11,13 @@ public class ForeignKey {
     public enum CASCADE {
         CASCADE, RESTRICT, SET_DEFAULT, SET_NULL, NO_ACTION
     }
+
     private String foreignTable;
     private Collection<String> localKeys;
     private Collection<String> foreignKeys;
-    private CASCADE updateCascade = null;
-    private CASCADE deleteCascade = null;
+    private Optional<CASCADE> updateCascade = Optional.empty();
+    private Optional<CASCADE> deleteCascade = Optional.empty();
+
     private ForeignKey(Builder builder) {
         if (builder.getLocalKeys().size() != builder.getForeignKeys().size()) {
             throw new RuntimeException("Foreign and local keys size should match");
@@ -39,11 +42,11 @@ public class ForeignKey {
         return foreignKeys;
     }
 
-    public CASCADE getUpdateCascade() {
+    public Optional<CASCADE> getUpdateCascade() {
         return updateCascade;
     }
 
-    public CASCADE getDeleteCascade() {
+    public Optional<CASCADE> getDeleteCascade() {
         return deleteCascade;
     }
 
@@ -52,8 +55,8 @@ public class ForeignKey {
         private String foreignTable;
         private Collection<String> localKeys;
         private Collection<String> foreignKeys;
-        private CASCADE deleteCascade;
-        private CASCADE updateCascade;
+        private Optional<CASCADE> deleteCascade;
+        private Optional<CASCADE> updateCascade;
 
         public Builder(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
             this.foreignTable = foreignTable;
@@ -66,16 +69,17 @@ public class ForeignKey {
         }
 
         public Builder cascadeDelete(CASCADE cascade) {
-            deleteCascade = cascade;
+            deleteCascade = Optional.ofNullable(cascade);
 
             return this;
         }
 
         public Builder cascadeUpdate(CASCADE cascade) {
-            updateCascade = cascade;
+            updateCascade = Optional.ofNullable(cascade);
 
             return this;
         }
+
         public String getForeignTable() {
             return foreignTable;
         }
@@ -88,11 +92,11 @@ public class ForeignKey {
             return foreignKeys;
         }
 
-        public CASCADE getDeleteCascade() {
+        public Optional<CASCADE> getDeleteCascade() {
             return deleteCascade;
         }
 
-        public CASCADE getUpdateCascade() {
+        public Optional<CASCADE> getUpdateCascade() {
             return updateCascade;
         }
 

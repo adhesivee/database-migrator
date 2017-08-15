@@ -1,28 +1,28 @@
 package nl.myndocs.database.migrator.definition;
 
-import java.lang.reflect.Type;
+import java.util.Optional;
 
 /**
  * Created by albert on 13-8-2017.
  */
 public class Column {
     public enum TYPE {
-        INTEGER, CHAR, VARCHAR, UUID;
+        INTEGER, CHAR, VARCHAR, UUID
     }
 
     private String columnName;
-    private Boolean primary = false;
-    private Boolean autoIncrement = false;
-    private Boolean isNotNull = false;
-    private TYPE type;
-    private Integer size;
-    private String defaultValue;
+    private Optional<Boolean> primary;
+    private Optional<Boolean> autoIncrement;
+    private Optional<Boolean> isNotNull;
+    private Optional<TYPE> type;
+    private Optional<Integer> size;
+    private Optional<String> defaultValue;
 
     private Column(Builder builder) {
         columnName = builder.getColumnName();
-        primary = builder.isPrimary();
-        autoIncrement = builder.isAutoIncrement();
-        isNotNull = builder.isNotNull();
+        primary = builder.getPrimary();
+        autoIncrement = builder.getAutoIncrement();
+        isNotNull = builder.getNotNull();
         type = builder.getType();
         size = builder.getSize();
         defaultValue = builder.getDefaultValue();
@@ -32,42 +32,42 @@ public class Column {
         return columnName;
     }
 
-    public Boolean isPrimary() {
+    public Optional<Boolean> getPrimary() {
         return primary;
     }
 
-    public Boolean isAutoIncrement() {
+    public Optional<Boolean> getAutoIncrement() {
         return autoIncrement;
     }
 
-    public TYPE getType() {
-        return type;
-    }
-
-    public Boolean isNotNull() {
+    public Optional<Boolean> getIsNotNull() {
         return isNotNull;
     }
 
-    public Integer getSize() {
+    public Optional<TYPE> getType() {
+        return type;
+    }
+
+    public Optional<Integer> getSize() {
         return size;
     }
 
-    public String getDefaultValue() {
+    public Optional<String> getDefaultValue() {
         return defaultValue;
     }
 
     public static class Builder {
         private String columnName;
-        private Boolean primary;
-        private Boolean autoIncrement;
-        private TYPE type;
-        private Boolean notNull;
-        private Integer size = null;
-        private String defaultValue;
+        private Optional<Boolean> primary = Optional.empty();
+        private Optional<Boolean> autoIncrement = Optional.empty();
+        private Optional<TYPE> type = Optional.empty();
+        private Optional<Boolean> notNull = Optional.empty();
+        private Optional<Integer> size = Optional.empty();
+        private Optional<String> defaultValue = Optional.empty();
 
         public Builder(String columnName, Column.TYPE type) {
             this.columnName = columnName;
-            this.type = type;
+            this.type = Optional.of(type);
         }
 
         public Builder(String columnName) {
@@ -75,37 +75,37 @@ public class Column {
         }
 
         public Builder type(Column.TYPE type) {
-            this.type = type;
+            this.type = Optional.ofNullable(type);
 
             return this;
         }
 
         public Builder primary(Boolean primary) {
-            this.primary = primary;
+            this.primary = Optional.ofNullable(primary);
 
             return this;
         }
 
         public Builder autoIncrement(Boolean autoIncrement) {
-            this.autoIncrement = autoIncrement;
+            this.autoIncrement = Optional.ofNullable(autoIncrement);
 
             return this;
         }
 
         public Builder defaultValue(String value) {
-            this.defaultValue = value;
+            this.defaultValue = Optional.ofNullable(value);
 
             return this;
         }
 
         public Builder size(Integer size) {
-            this.size = size;
+            this.size = Optional.ofNullable(size);
 
             return this;
         }
 
         public Builder notNull(Boolean notNull) {
-            this.notNull = notNull;
+            this.notNull = Optional.ofNullable(notNull);
 
             return this;
         }
@@ -114,27 +114,27 @@ public class Column {
             return columnName;
         }
 
-        public Boolean isPrimary() {
+        public Optional<Boolean> getPrimary() {
             return primary;
         }
 
-        public Boolean isAutoIncrement() {
+        public Optional<Boolean> getAutoIncrement() {
             return autoIncrement;
         }
 
-        public Boolean isNotNull() {
-            return notNull;
-        }
-
-        public TYPE getType() {
+        public Optional<TYPE> getType() {
             return type;
         }
 
-        public Integer getSize() {
+        public Optional<Boolean> getNotNull() {
+            return notNull;
+        }
+
+        public Optional<Integer> getSize() {
             return size;
         }
 
-        public String getDefaultValue() {
+        public Optional<String> getDefaultValue() {
             return defaultValue;
         }
 

@@ -8,10 +8,10 @@ import nl.myndocs.database.migrator.definition.Column;
 public class HyperSQL extends BaseProfile  {
 
     protected String getNativeColumnDefinition(Column column) {
-        Column.TYPE columnType = column.getType();
+        Column.TYPE columnType = column.getType().get();
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (column.isAutoIncrement() != null && column.isAutoIncrement() ? "IDENTITY" : "");
+                return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
             case VARCHAR:
                 return "VARCHAR " + getWithSizeOrDefault(column, "255");
             case CHAR:

@@ -13,10 +13,10 @@ public class Postgres extends BaseProfile {
     }
 
     protected String getNativeColumnDefinition(Column column) {
-        Column.TYPE columnType = column.getType();
+        Column.TYPE columnType = column.getType().get();
         switch (columnType) {
             case INTEGER:
-                if (column.isAutoIncrement() != null && column.isAutoIncrement()) {
+                if (column.getAutoIncrement().orElse(false)) {
                     return "SERIAL";
                 }
                 return "INTEGER";

@@ -32,8 +32,8 @@ public abstract class BaseProfile implements Profile {
                                 column.getColumnName() + " " +
                                         getNativeColumnDefinition(column) + " " +
                                         getDefaultValue(column) + " " +
-                                        (column.isNotNull() != null && column.isNotNull() ? "NOT NULL" : "") + " " +
-                                        (column.isPrimary() != null && column.isPrimary() ? "PRIMARY KEY" : "") + " "
+                                        (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                                        (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
                         );
 
                         count++;
@@ -48,12 +48,12 @@ public abstract class BaseProfile implements Profile {
                         createTableQueryBuilder.append(String.join(",", foreignKey.getForeignKeys()));
                         createTableQueryBuilder.append(")");
 
-                        if (foreignKey.getDeleteCascade() != null) {
-                            createTableQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade()));
+                        if (foreignKey.getDeleteCascade().isPresent()) {
+                            createTableQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
                         }
 
-                        if (foreignKey.getUpdateCascade() != null) {
-                            createTableQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade()));
+                        if (foreignKey.getUpdateCascade().isPresent()) {
+                            createTableQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
                         }
                     }
 
@@ -93,6 +93,7 @@ public abstract class BaseProfile implements Profile {
     protected String getAlterType() {
         return "";
     }
+
     protected String getDefaultValue(Column column) {
         String quote = "";
 
@@ -100,23 +101,24 @@ public abstract class BaseProfile implements Profile {
                 Column.TYPE.CHAR,
                 Column.TYPE.VARCHAR
         );
-        if (quotedTypes.contains(column.getType())) {
+        if (quotedTypes.contains(column.getType().get())) {
             quote = "'";
         }
 
-        return (column.getDefaultValue() != null ? "DEFAULT " + quote + column.getDefaultValue() + quote + "" : "");
+        return (column.getDefaultValue().isPresent() ? "DEFAULT " + quote + column.getDefaultValue().get() + quote + "" : "");
     }
+
     protected String getWithSizeIfPossible(Column column) {
-        if (column.getSize() != null) {
-            return "(" + column.getSize() + ")";
+        if (column.getSize().isPresent()) {
+            return "(" + column.getSize().get() + ")";
         }
 
         return "";
     }
 
     protected String getWithSizeOrDefault(Column column, String defaultValue) {
-        if (column.getSize() != null) {
-            return "(" + column.getSize() + ")";
+        if (column.getSize().isPresent()) {
+            return "(" + column.getSize().get() + ")";
         }
 
         return "(" + defaultValue + ")";
