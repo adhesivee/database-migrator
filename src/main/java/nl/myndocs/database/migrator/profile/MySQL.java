@@ -1,21 +1,19 @@
 package nl.myndocs.database.migrator.profile;
 
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.definition.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 /**
  * Created by albert on 13-8-2017.
  */
 public class MySQL extends BaseProfile {
     private static Logger logger = LoggerFactory.getLogger(MySQL.class);
+
+    @Override
+    protected String getAlterColumnKey() {
+        return "MODIFY";
+    }
 
     protected String getNativeColumnDefinition(Column column) {
         Column.TYPE columnType = column.getType();

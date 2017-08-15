@@ -69,7 +69,7 @@ public abstract class BaseProfile implements Profile {
 
                     for (Column column : table.getChangeColumns()) {
                         if (column.getType() != null) {
-                            alterTableQueryBuilder.append("ALTER COLUMN " + column.getColumnName() + " " + getNativeColumnDefinition(column));
+                            alterTableQueryBuilder.append(getAlterColumnKey() + " COLUMN " + column.getColumnName() + " " + getAlterType() + " " + getNativeColumnDefinition(column));
                         }
                     }
 
@@ -86,6 +86,13 @@ public abstract class BaseProfile implements Profile {
 
     protected abstract String getNativeColumnDefinition(Column column);
 
+    protected String getAlterColumnKey() {
+        return "ALTER";
+    }
+
+    protected String getAlterType() {
+        return "";
+    }
     protected String getDefaultValue(Column column) {
         String quote = "";
 

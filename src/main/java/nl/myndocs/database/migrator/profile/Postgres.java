@@ -1,18 +1,17 @@
 package nl.myndocs.database.migrator.profile;
 
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.definition.Table;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 /**
  * Created by albert on 13-8-2017.
  */
 public class Postgres extends BaseProfile {
+
+    @Override
+    protected String getAlterType() {
+        return "TYPE";
+    }
+
     protected String getNativeColumnDefinition(Column column) {
         Column.TYPE columnType = column.getType();
         switch (columnType) {
