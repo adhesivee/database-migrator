@@ -42,6 +42,30 @@ builder.table("some_other_table")
     });
 ```
 
+### Rename column
+```java
+Migration.Builder builder = new Migration.Builder();
+
+builder.table("some_table")
+    .changeColumn("name", column -> column.rename("renamed"));
+```
+
+### Change column type
+```java
+Migration.Builder builder = new Migration.Builder();
+
+builder.table("some_table")
+    .changeColumn("name", column -> column.type(Column.TYPE.VARCHAR));
+```
+
+### Column type size
+```java
+Migration.Builder builder = new Migration.Builder();
+
+builder.table("some_table")
+    .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(25));
+```
+
 ## Requirements
 
 - Java 8+
