@@ -14,7 +14,7 @@ public abstract class BaseIntegration {
             Connection connection
     ) throws SQLException, ClassNotFoundException, InterruptedException {
         Statement statement = connection.createStatement();
-        statement.execute("INSERT INTO some_table (name) VALUES ('test1')");
+        statement.execute("INSERT INTO some_table (name, change_type) VALUES ('test1', 'type-test')");
         statement.execute("INSERT INTO some_table (name) VALUES ('test2')");
         statement.execute("SELECT * FROM some_table");
 
@@ -31,14 +31,15 @@ public abstract class BaseIntegration {
     public Migration buildMigration() {
         Migration.Builder builder = new Migration.Builder();
 
-        builder.addTable("some_table")
+        builder.table("some_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR)
                 .addColumn("name_non_null", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default"))
                 .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
-                .addColumn("some_uuid", Column.TYPE.UUID);
+                .addColumn("some_uuid", Column.TYPE.UUID)
+                .addColumn("change_type", Column.TYPE.UUID);
 
-        builder.addTable("some_other_table")
+        builder.table("some_other_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("some_table_id", Column.TYPE.INTEGER)
                 .addColumn("name", Column.TYPE.VARCHAR, column -> {
@@ -48,6 +49,9 @@ public abstract class BaseIntegration {
                     key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
                     key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
                 });
+
+        builder.table("some_table")
+                .changeColumn("change_type", column -> column.type(Column.TYPE.VARCHAR));
 
         return builder.build();
     }

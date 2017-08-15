@@ -17,7 +17,7 @@ public class Postgres extends BaseProfile {
         Column.TYPE columnType = column.getType();
         switch (columnType) {
             case INTEGER:
-                if (column.isAutoIncrement()) {
+                if (column.isAutoIncrement() != null && column.isAutoIncrement()) {
                     return "SERIAL";
                 }
                 return "INTEGER";

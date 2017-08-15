@@ -21,7 +21,7 @@ public class MySQL extends BaseProfile {
         Column.TYPE columnType = column.getType();
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (column.isAutoIncrement() ? "AUTO_INCREMENT" : "");
+                return "INTEGER " + (column.isAutoIncrement() != null && column.isAutoIncrement() ? "AUTO_INCREMENT" : "");
             case VARCHAR:
                 return "VARCHAR " + getWithSizeOrDefault(column, "255");
             case CHAR:

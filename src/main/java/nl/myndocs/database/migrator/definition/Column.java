@@ -1,5 +1,7 @@
 package nl.myndocs.database.migrator.definition;
 
+import java.lang.reflect.Type;
+
 /**
  * Created by albert on 13-8-2017.
  */
@@ -9,9 +11,9 @@ public class Column {
     }
 
     private String columnName;
-    private boolean primary = false;
-    private boolean autoIncrement = false;
-    private boolean isNotNull = false;
+    private Boolean primary = false;
+    private Boolean autoIncrement = false;
+    private Boolean isNotNull = false;
     private TYPE type;
     private Integer size;
     private String defaultValue;
@@ -30,11 +32,11 @@ public class Column {
         return columnName;
     }
 
-    public boolean isPrimary() {
+    public Boolean isPrimary() {
         return primary;
     }
 
-    public boolean isAutoIncrement() {
+    public Boolean isAutoIncrement() {
         return autoIncrement;
     }
 
@@ -42,7 +44,7 @@ public class Column {
         return type;
     }
 
-    public boolean isNotNull() {
+    public Boolean isNotNull() {
         return isNotNull;
     }
 
@@ -56,10 +58,10 @@ public class Column {
 
     public static class Builder {
         private String columnName;
-        private boolean primary = false;
-        private boolean autoIncrement = false;
+        private Boolean primary;
+        private Boolean autoIncrement;
         private TYPE type;
-        private boolean notNull;
+        private Boolean notNull;
         private Integer size = null;
         private String defaultValue;
 
@@ -68,13 +70,23 @@ public class Column {
             this.type = type;
         }
 
-        public Builder primary(boolean primary) {
+        public Builder(String columnName) {
+            this.columnName = columnName;
+        }
+
+        public Builder type(Column.TYPE type) {
+            this.type = type;
+
+            return this;
+        }
+
+        public Builder primary(Boolean primary) {
             this.primary = primary;
 
             return this;
         }
 
-        public Builder autoIncrement(boolean autoIncrement) {
+        public Builder autoIncrement(Boolean autoIncrement) {
             this.autoIncrement = autoIncrement;
 
             return this;
@@ -92,24 +104,25 @@ public class Column {
             return this;
         }
 
-        public Builder notNull(boolean notNull) {
+        public Builder notNull(Boolean notNull) {
             this.notNull = notNull;
 
             return this;
         }
+
         public String getColumnName() {
             return columnName;
         }
 
-        public boolean isPrimary() {
+        public Boolean isPrimary() {
             return primary;
         }
 
-        public boolean isAutoIncrement() {
+        public Boolean isAutoIncrement() {
             return autoIncrement;
         }
 
-        public boolean isNotNull() {
+        public Boolean isNotNull() {
             return notNull;
         }
 

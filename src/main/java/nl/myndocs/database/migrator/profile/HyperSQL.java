@@ -11,7 +11,7 @@ public class HyperSQL extends BaseProfile  {
         Column.TYPE columnType = column.getType();
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (column.isAutoIncrement() ? "IDENTITY" : "");
+                return "INTEGER " + (column.isAutoIncrement() != null && column.isAutoIncrement() ? "IDENTITY" : "");
             case VARCHAR:
                 return "VARCHAR " + getWithSizeOrDefault(column, "255");
             case CHAR:

@@ -13,14 +13,28 @@ public class Table {
     private String tableName;
     private List<Column> newColumns = new ArrayList<>();
     private Collection<ForeignKey> foreignKeys = new ArrayList<>();
+    private Collection<Column> changeColumns = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
         tableName = tableBuilder.getTableName();
+
+        long emptyTypeCount = tableBuilder.getNewColumns()
+                .stream()
+                .filter(column -> column.getType() == null)
+                .count();
+
+        if (emptyTypeCount > 0) {
+            throw new RuntimeException("New column types should have a type");
+        }
+
         tableBuilder.getNewColumns()
                 .forEach(column -> newColumns.add(column.build()));
 
         tableBuilder.getForeignColumnKeys()
                 .forEach(foreignColumnKey -> foreignKeys.add(foreignColumnKey.build()));
+
+        tableBuilder.getChangeColumns()
+                .forEach(column -> changeColumns.add(column.build()));
     }
 
     public String getTableName() {
@@ -31,6 +45,10 @@ public class Table {
         return newColumns;
     }
 
+    public Collection<Column> getChangeColumns() {
+        return changeColumns;
+    }
+
     public Collection<ForeignKey> getForeignKeys() {
         return foreignKeys;
     }
@@ -38,7 +56,7 @@ public class Table {
     public static class Builder {
         private String tableName;
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
-        private List<Column.Builder> removeColumnBuilders = new ArrayList<>();
+        private List<Column.Builder> changeColumns = new ArrayList<>();
         private Collection<ForeignKey.Builder> foreignColumnKeys = new ArrayList<>();
 
         public Builder(String tableName) {
@@ -60,6 +78,26 @@ public class Table {
 
         public Table.Builder addColumn(String columnName, Column.TYPE type, Consumer<Column.Builder> column) {
             Column.Builder columnBuilder = addNewColumn(columnName, type);
+            column.accept(columnBuilder);
+
+            return this;
+        }
+
+        private Column.Builder addChangeColumn(String columnName) {
+            Column.Builder builder = new Column.Builder(columnName);
+
+            changeColumns.add(builder);
+            return builder;
+        }
+
+        public Table.Builder changeColumn(String columnName) {
+            addChangeColumn(columnName);
+
+            return this;
+        }
+
+        public Table.Builder changeColumn(String columnName, Consumer<Column.Builder> column) {
+            Column.Builder columnBuilder = addChangeColumn(columnName);
             column.accept(columnBuilder);
 
             return this;
@@ -100,6 +138,7 @@ public class Table {
             return this;
         }
 
+
         public Collection<ForeignKey.Builder> getForeignColumnKeys() {
             return foreignColumnKeys;
         }
@@ -110,6 +149,10 @@ public class Table {
 
         public List<Column.Builder> getNewColumns() {
             return newColumnBuilders;
+        }
+
+        public List<Column.Builder> getChangeColumns() {
+            return changeColumns;
         }
 
         public Table build() {

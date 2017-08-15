@@ -17,50 +17,65 @@ import java.util.List;
 public abstract class BaseProfile implements Profile {
     public void createDatabase(Connection connection, Migration migration) {
         try {
-            for (Table table : migration.getNewTables()) {
+            for (Table table : migration.getTables()) {
                 Statement statement = connection.createStatement();
-                StringBuilder stringBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
+                if (table.getNewColumns().size() > 0) {
+                    StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
 
-                int count = 0;
-                for (Column column : table.getNewColumns()) {
-                    if (count > 0) {
-                        stringBuilder.append(",\n");
+                    int count = 0;
+                    for (Column column : table.getNewColumns()) {
+                        if (count > 0) {
+                            createTableQueryBuilder.append(",\n");
+                        }
+
+                        createTableQueryBuilder.append(
+                                column.getColumnName() + " " +
+                                        getNativeColumnDefinition(column) + " " +
+                                        getDefaultValue(column) + " " +
+                                        (column.isNotNull() != null && column.isNotNull() ? "NOT NULL" : "") + " " +
+                                        (column.isPrimary() != null && column.isPrimary() ? "PRIMARY KEY" : "") + " "
+                        );
+
+                        count++;
                     }
 
-                    stringBuilder.append(
-                            column.getColumnName() + " " +
-                                    getNativeColumnDefinition(column) + " " +
-                                    getDefaultValue(column) + " " +
-                                    (column.isNotNull() ? "NOT NULL" : "") + " " +
-                                    (column.isPrimary() ? "PRIMARY KEY" : "") + " "
-                    );
+                    for (ForeignKey foreignKey : table.getForeignKeys()) {
+                        createTableQueryBuilder.append(",\n");
 
-                    count++;
+                        createTableQueryBuilder.append(" FOREIGN KEY (");
+                        createTableQueryBuilder.append(String.join(",", foreignKey.getLocalKeys()));
+                        createTableQueryBuilder.append(") REFERENCES " + foreignKey.getForeignTable() + " (");
+                        createTableQueryBuilder.append(String.join(",", foreignKey.getForeignKeys()));
+                        createTableQueryBuilder.append(")");
+
+                        if (foreignKey.getDeleteCascade() != null) {
+                            createTableQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade()));
+                        }
+
+                        if (foreignKey.getUpdateCascade() != null) {
+                            createTableQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade()));
+                        }
+                    }
+
+                    createTableQueryBuilder.append(");");
+
+                    System.out.println(createTableQueryBuilder.toString());
+
+                    statement.execute(createTableQueryBuilder.toString());
                 }
 
-                for (ForeignKey foreignKey : table.getForeignKeys()) {
-                    stringBuilder.append(",\n");
+                if (table.getChangeColumns().size() > 0) {
+                    StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
 
-                    stringBuilder.append(" FOREIGN KEY (");
-                    stringBuilder.append(String.join(",", foreignKey.getLocalKeys()));
-                    stringBuilder.append(") REFERENCES " + foreignKey.getForeignTable() + " (");
-                    stringBuilder.append(String.join(",", foreignKey.getForeignKeys()));
-                    stringBuilder.append(")");
-
-                    if (foreignKey.getDeleteCascade() != null) {
-                        stringBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade()));
+                    for (Column column : table.getChangeColumns()) {
+                        if (column.getType() != null) {
+                            alterTableQueryBuilder.append("ALTER COLUMN " + column.getColumnName() + " " + getNativeColumnDefinition(column));
+                        }
                     }
 
-                    if (foreignKey.getUpdateCascade() != null) {
-                        stringBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade()));
-                    }
+                    System.out.println(alterTableQueryBuilder.toString());
+                    statement.execute(alterTableQueryBuilder.toString());
                 }
-
-                stringBuilder.append(");");
-
-                System.out.println(stringBuilder.toString());
-
-                statement.execute(stringBuilder.toString());
 
                 statement.close();
             }
