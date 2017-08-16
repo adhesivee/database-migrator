@@ -5,9 +5,7 @@ import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.definition.Table;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,33 +19,64 @@ public abstract class BaseProfile implements Profile {
     public void createDatabase(Connection connection, Migration migration) {
         try {
             for (Table table : migration.getTables()) {
+                DatabaseMetaData metaData = connection.getMetaData();
+                ResultSet tables = metaData.getTables(null, null, table.getTableName(), new String[]{"TABLE"});
+
+                boolean tableExists = false;
+                while (tables.next()) {
+                    if (table.getTableName().equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                        tableExists = true;
+                    }
+                }
+
                 Statement statement = connection.createStatement();
-                if (table.getNewColumns().size() > 0) {
-                    StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
 
-                    int count = 0;
+                if (tableExists) {
                     for (Column column : table.getNewColumns()) {
-                        if (count > 0) {
-                            createTableQueryBuilder.append(",\n");
-                        }
+                        StringBuilder addColumnQueryBuilder = new StringBuilder();
 
-                        createTableQueryBuilder.append(
-                                column.getColumnName() + " " +
+                        addColumnQueryBuilder.append(
+                                "ALTER TABLE " + table.getTableName() + " " +
+                                        "ADD COLUMN " +
+                                        column.getColumnName() + " " +
                                         getNativeColumnDefinition(column) + " " +
                                         getDefaultValue(column) + " " +
                                         (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
                                         (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
                         );
 
-                        count++;
+                        statement.execute(addColumnQueryBuilder.toString());
                     }
 
+                } else {
 
-                    createTableQueryBuilder.append(");");
+                    if (table.getNewColumns().size() > 0) {
+                        StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
 
-                    System.out.println(createTableQueryBuilder.toString());
+                        int count = 0;
+                        for (Column column : table.getNewColumns()) {
+                            if (count > 0) {
+                                createTableQueryBuilder.append(",\n");
+                            }
 
-                    statement.execute(createTableQueryBuilder.toString());
+                            createTableQueryBuilder.append(
+                                    column.getColumnName() + " " +
+                                            getNativeColumnDefinition(column) + " " +
+                                            getDefaultValue(column) + " " +
+                                            (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                                            (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
+                            );
+
+                            count++;
+                        }
+
+
+                        createTableQueryBuilder.append(");");
+
+                        System.out.println(createTableQueryBuilder.toString());
+
+                        statement.execute(createTableQueryBuilder.toString());
+                    }
                 }
 
 

@@ -120,6 +120,30 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testAddingNewColumnsToExistingTable() throws ClassNotFoundException, SQLException {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_appending_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR);
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("some_appending_table")
+                .addColumn("some_table_id", Column.TYPE.INTEGER);
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+    }
+    @Test
     public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
         Profile profile = getProfile();
