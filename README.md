@@ -7,7 +7,7 @@ The goals of this project:
 
 This is only meant for simple database structures. It will not support database views, functions or procedures.
 
-## Supported features
+## Features
 ### Supported databases
 
 - H2
