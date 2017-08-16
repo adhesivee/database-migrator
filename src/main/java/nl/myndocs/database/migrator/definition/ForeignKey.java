@@ -12,6 +12,7 @@ public class ForeignKey {
         CASCADE, RESTRICT, SET_DEFAULT, SET_NULL, NO_ACTION
     }
 
+    private String constraintName;
     private String foreignTable;
     private Collection<String> localKeys;
     private Collection<String> foreignKeys;
@@ -23,6 +24,7 @@ public class ForeignKey {
             throw new RuntimeException("Foreign and local keys size should match");
         }
 
+        constraintName = builder.getConstraintName();
         foreignTable = builder.getForeignTable();
         localKeys = builder.getLocalKeys();
         foreignKeys = builder.getForeignKeys();
@@ -50,22 +52,27 @@ public class ForeignKey {
         return deleteCascade;
     }
 
-    public static class Builder {
+    public String getConstraintName() {
+        return constraintName;
+    }
 
+    public static class Builder {
+        private String constraintName;
         private String foreignTable;
         private Collection<String> localKeys;
         private Collection<String> foreignKeys;
         private Optional<CASCADE> deleteCascade;
         private Optional<CASCADE> updateCascade;
 
-        public Builder(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+        public Builder(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+            this.constraintName = constraintName;
             this.foreignTable = foreignTable;
             this.localKeys = localKeys;
             this.foreignKeys = foreignKeys;
         }
 
-        public Builder(String foreignTable, String localKey, String foreignKey) {
-            this(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
+        public Builder(String constraintName, String foreignTable, String localKey, String foreignKey) {
+            this(constraintName, foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
         }
 
         public Builder cascadeDelete(CASCADE cascade) {
@@ -102,6 +109,10 @@ public class ForeignKey {
 
         public ForeignKey build() {
             return new ForeignKey(this);
+        }
+
+        public String getConstraintName() {
+            return constraintName;
         }
     }
 }

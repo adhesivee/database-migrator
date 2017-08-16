@@ -103,8 +103,8 @@ public class Table {
             return this;
         }
 
-        private ForeignKey.Builder createNewForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
-            ForeignKey.Builder builder = new ForeignKey.Builder(foreignTable, localKeys, foreignKeys);
+        private ForeignKey.Builder createNewForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+            ForeignKey.Builder builder = new ForeignKey.Builder(constraintName, foreignTable, localKeys, foreignKeys);
             newForeignColumnKeys.add(
                     builder
             );
@@ -113,26 +113,26 @@ public class Table {
         }
 
 
-        public Builder addForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
-            createNewForeignKey(foreignTable, localKeys, foreignKeys);
+        public Builder addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+            createNewForeignKey(constraintName, foreignTable, localKeys, foreignKeys);
 
             return this;
         }
 
-        public Builder addForeignKey(String foreignTable, String localKey, String foreignKey) {
-            return addForeignKey(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
+        public Builder addForeignKey(String constraintName, String foreignTable, String localKey, String foreignKey) {
+            return addForeignKey(constraintName, foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
         }
 
-        public Builder addForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
+        public Builder addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
             foreignKeyConsumer.accept(
-                    createNewForeignKey(foreignTable, localKeys, foreignKeys)
+                    createNewForeignKey(constraintName, foreignTable, localKeys, foreignKeys)
             );
             return this;
         }
 
-        public Builder addForeignKey(String foreignTable, String localKey, String foreignKey, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
+        public Builder addForeignKey(String constraintName, String foreignTable, String localKey, String foreignKey, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
             foreignKeyConsumer.accept(
-                    createNewForeignKey(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey))
+                    createNewForeignKey(constraintName, foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey))
             );
 
             return this;

@@ -53,7 +53,7 @@ public abstract class BaseProfile implements Profile {
 
                 for (ForeignKey foreignKey : table.getNewForeignKeys()) {
                     StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT some_constraint");
+                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + foreignKey.getConstraintName());
 
                     alterForeignKeyQueryBuilder.append(
                             String.format(

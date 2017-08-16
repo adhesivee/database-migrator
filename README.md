@@ -48,7 +48,7 @@ Migration.Builder builder = new Migration.Builder();
 builder.table("some_other_table")
     .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
     .addColumn("some_table_id", Column.TYPE.INTEGER)
-    .addForeignKey("some_table", "some_table_id", "id", key -> {
+    .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
         key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
         key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
     });

@@ -62,7 +62,7 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR, column -> {
                     column.size(2);
                 })
-                .addForeignKey("some_table", "some_table_id", "id", key -> {
+                .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
                     key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
                     key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
                 });
