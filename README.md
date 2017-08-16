@@ -1,7 +1,3 @@
-# !!!DO NOT USE IN PRODUCTION!!!
-This project is an expirenment and is not meant for production.
-The project structure can change a lot.
-
 # Database migration
 ## Goal
 The goals of this project:
@@ -11,13 +7,29 @@ The goals of this project:
 
 This is only meant for simple database structures. It will not support database views, functions or procedures.
 
-## Supported databases
+## Supported features
+### Supported databases
 
 - H2
 - HyperSQL
 - MySQL
 - PostgreSQL
 
+### Supported column types
+
+- VARCHAR
+- CHAR
+- INT 
+- UUID
+
+### Supported cascading types
+
+- RESTRICT
+- SET_NULL
+- SET_DEFAULT
+- NO_ACTION
+- CASCADE
+                
 ## Examples
 
 ### Create table
@@ -36,7 +48,7 @@ Migration.Builder builder = new Migration.Builder();
 builder.table("some_other_table")
     .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
     .addColumn("some_table_id", Column.TYPE.INTEGER)
-    .foreignKey("some_table", "some_table_id", "id", key -> {
+    .addForeignKey("some_table", "some_table_id", "id", key -> {
         key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
         key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
     });
@@ -68,5 +80,8 @@ builder.table("some_table")
 
 ## Requirements
 
+### Runtime
 - Java 8+
+
+### Test
 - Docker

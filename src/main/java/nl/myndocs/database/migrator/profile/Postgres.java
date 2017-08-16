@@ -13,7 +13,7 @@ import java.sql.Statement;
 public class Postgres extends BaseProfile {
 
     @Override
-    protected String getAlterType() {
+    protected String getAlterTypeKey() {
         return "TYPE";
     }
 

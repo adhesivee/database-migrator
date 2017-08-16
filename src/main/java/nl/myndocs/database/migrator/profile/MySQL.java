@@ -15,6 +15,7 @@ import java.sql.Statement;
  */
 public class MySQL extends BaseProfile {
     private static Logger logger = LoggerFactory.getLogger(MySQL.class);
+    private static final String ALTER_TABLE_FORMAT = "ALTER TABLE %s CHANGE %s %s %s %s %s";
 
     @Override
     protected String getAlterColumnKey() {
@@ -23,14 +24,53 @@ public class MySQL extends BaseProfile {
 
     @Override
     protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
+        DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
+
         Statement statement = connection.createStatement();
-        statement.execute("DESCRIBE test_rename_table");
+
+        String alterTableFormatted = String.format(
+                ALTER_TABLE_FORMAT,
+                table.getTableName(),
+                column.getColumnName(),
+                column.getRename().get(),
+                databaseColumn.getColumnType(),
+                (databaseColumn.getColumnDefault() != null && !databaseColumn.getColumnDefault().isEmpty() ? "DEFAULT '" + databaseColumn.getColumnDefault() + "'" : ""),
+                databaseColumn.getNotNullValue()
+        );
+
+        statement.execute(alterTableFormatted);
+        statement.close();
+    }
+
+    @Override
+    protected void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException {
+        Statement statement = connection.createStatement();
+
+        DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
+
+        String alterTableFormatted = String.format(
+                ALTER_TABLE_FORMAT,
+                table.getTableName(),
+                column.getColumnName(),
+                column.getColumnName(),
+                databaseColumn.getColumnType(),
+                (column.getDefaultValue().isPresent() ? "DEFAULT '" + column.getDefaultValue().get() + "'" : ""),
+                databaseColumn.getNotNullValue()
+        );
+        statement.execute(alterTableFormatted);
+        statement.close();
+    }
+
+    private DatabaseColumn loadDatabaseColumn(Connection connection, Table table, Column column) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute("DESCRIBE " + table.getTableName());
 
         ResultSet resultSet = statement.getResultSet();
 
         String notNullValue = "";
         String columnType = "";
         String columnDefault = "";
+
         while (resultSet.next()) {
             if (resultSet.getString("Field").equals(column.getColumnName())) {
                 if ("NO".equals(resultSet.getString("Null"))) {
@@ -43,19 +83,10 @@ public class MySQL extends BaseProfile {
             }
         }
 
-        statement.execute(
-                "ALTER TABLE " +
-                        table.getTableName() +
-                        " CHANGE " +
-                        column.getColumnName() + " " +
-                        column.getRename().get() + " " +
-                        columnType + " " +
-                        (columnDefault != null && !columnDefault.isEmpty() ? "DEFAULT '" + columnDefault + "'" : "") + " " +
-                        notNullValue);
         statement.close();
+
+        return new DatabaseColumn(notNullValue, columnType, columnDefault);
     }
-
-
     protected String getNativeColumnDefinition(Column column) {
         Column.TYPE columnType = column.getType().get();
         switch (columnType) {
@@ -71,5 +102,29 @@ public class MySQL extends BaseProfile {
         }
 
         throw new RuntimeException("Unknown type");
+    }
+
+    private static class DatabaseColumn {
+        private final String notNullValue;
+        private final String columnType;
+        private final String columnDefault;
+
+        public DatabaseColumn(String notNullValue, String columnType, String columnDefault) {
+            this.notNullValue = notNullValue;
+            this.columnType = columnType;
+            this.columnDefault = columnDefault;
+        }
+
+        public String getNotNullValue() {
+            return notNullValue;
+        }
+
+        public String getColumnType() {
+            return columnType;
+        }
+
+        public String getColumnDefault() {
+            return columnDefault;
+        }
     }
 }

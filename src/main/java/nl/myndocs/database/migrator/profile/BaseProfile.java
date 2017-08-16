@@ -15,6 +15,9 @@ import java.util.List;
  * Created by albert on 15-8-2017.
  */
 public abstract class BaseProfile implements Profile {
+    private static final String CREATE_FOREIGN_KEY_FORMAT = "FOREIGN KEY (%s) REFERENCES %s (%s)";
+    private static final String ALTER_TABLE_ALTER_DEFAULT = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s";
+
     public void createDatabase(Connection connection, Migration migration) {
         try {
             for (Table table : migration.getTables()) {
@@ -39,14 +42,17 @@ public abstract class BaseProfile implements Profile {
                         count++;
                     }
 
-                    for (ForeignKey foreignKey : table.getForeignKeys()) {
-                        createTableQueryBuilder.append(",\n");
+                    for (ForeignKey foreignKey : table.getNewForeignKeys()) {
+                        createTableQueryBuilder.append(",\n ");
 
-                        createTableQueryBuilder.append(" FOREIGN KEY (");
-                        createTableQueryBuilder.append(String.join(",", foreignKey.getLocalKeys()));
-                        createTableQueryBuilder.append(") REFERENCES " + foreignKey.getForeignTable() + " (");
-                        createTableQueryBuilder.append(String.join(",", foreignKey.getForeignKeys()));
-                        createTableQueryBuilder.append(")");
+                        createTableQueryBuilder.append(
+                                String.format(
+                                        CREATE_FOREIGN_KEY_FORMAT,
+                                        String.join(",", foreignKey.getLocalKeys()),
+                                        foreignKey.getForeignTable(),
+                                        String.join(",", foreignKey.getForeignKeys())
+                                )
+                        );
 
                         if (foreignKey.getDeleteCascade().isPresent()) {
                             createTableQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
@@ -64,19 +70,22 @@ public abstract class BaseProfile implements Profile {
                     statement.execute(createTableQueryBuilder.toString());
                 }
 
+                statement.close();
+
                 if (table.getChangeColumns().size() > 0) {
 
                     for (Column column : table.getChangeColumns()) {
                         if (column.getType().isPresent()) {
-                            StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
-                            alterTableQueryBuilder.append(getAlterColumnKey() + " COLUMN " + column.getColumnName() + " " + getAlterType() + " " + getNativeColumnDefinition(column));
-                            System.out.println(alterTableQueryBuilder.toString());
-                            statement.execute(alterTableQueryBuilder.toString());
+                            changeColumnType(connection, table, column);
+                        }
+
+                        if (column.getDefaultValue().isPresent()) {
+                            changeColumnDefault(connection, table, column);
                         }
                     }
 
-                    statement.close();
-
+                    // Make sure renames always happens last
+                    // Otherwise changeColumnType and changeColumnDefault will break
                     for (Column column : table.getChangeColumns()) {
                         if (column.getRename().isPresent()) {
                             changeColumnName(connection, table, column);
@@ -97,7 +106,7 @@ public abstract class BaseProfile implements Profile {
         return "ALTER";
     }
 
-    protected String getAlterType() {
+    protected String getAlterTypeKey() {
         return "";
     }
 
@@ -125,6 +134,31 @@ public abstract class BaseProfile implements Profile {
 
     // @TODO: This should be solved more generic
     protected abstract void changeColumnName(Connection connection, Table table, Column column) throws SQLException;
+
+    protected void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute(
+                String.format(
+                        ALTER_TABLE_ALTER_DEFAULT,
+                        table.getTableName(),
+                        column.getColumnName(),
+                        "'" + column.getDefaultValue().get() + "'"
+
+                )
+        );
+        statement.close();
+    }
+
+    protected void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
+        Statement statement = connection.createStatement();
+        StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
+        alterTableQueryBuilder.append(getAlterColumnKey() + " COLUMN " + column.getColumnName() + " " + getAlterTypeKey() + " " + getNativeColumnDefinition(column));
+
+        System.out.println(alterTableQueryBuilder.toString());
+        statement.execute(alterTableQueryBuilder.toString());
+
+        statement.close();
+    }
 
     protected String getWithSizeOrDefault(Column column, String defaultValue) {
         if (column.getSize().isPresent()) {

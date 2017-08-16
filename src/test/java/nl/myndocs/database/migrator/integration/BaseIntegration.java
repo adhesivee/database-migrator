@@ -4,6 +4,7 @@ import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.profile.Profile;
+import org.junit.Test;
 
 import java.sql.*;
 
@@ -14,9 +15,21 @@ import static org.junit.Assert.assertTrue;
  * Created by albert on 14-8-2017.
  */
 public abstract class BaseIntegration {
+    @Test
+    public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
+        Connection connection = getConnection();
+        getProfile().createDatabase(
+                connection,
+                buildMigration()
+        );
+
+        performIntegration();
+    }
+
     public void performIntegration(
-            Connection connection
     ) throws SQLException, ClassNotFoundException, InterruptedException {
+        Connection connection = getConnection();
+
         Statement statement = connection.createStatement();
         statement.execute("INSERT INTO some_table (name, change_type) VALUES ('test1', 'type-test')");
         statement.execute("INSERT INTO some_table (name) VALUES ('test2')");
@@ -49,7 +62,7 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR, column -> {
                     column.size(2);
                 })
-                .foreignKey("some_table", "some_table_id", "id", key -> {
+                .addForeignKey("some_table", "some_table_id", "id", key -> {
                     key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
                     key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
                 });
@@ -79,7 +92,11 @@ public abstract class BaseIntegration {
         }
     }
 
-    public void testRenamingWithDefaults(Connection connection, Profile profile) throws ClassNotFoundException, SQLException {
+    @Test
+    public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
+        Connection connection = getConnection();
+        Profile profile = getProfile();
+
         Migration.Builder builder = new Migration.Builder();
 
         builder.table("test_rename_table")
@@ -117,4 +134,48 @@ public abstract class BaseIntegration {
         connection.close();
     }
 
+    @Test
+    public void testChangingDefaults() throws ClassNotFoundException, SQLException {
+        Connection connection = getConnection();
+        Profile profile = getProfile();
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("test_change_default_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("fixed_name", Column.TYPE.VARCHAR)
+                .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
+
+
+        profile.createDatabase(
+                connection,
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("test_change_default_table")
+                .changeColumn("name", column -> column.defaultValue("changed-value"));
+
+        profile.createDatabase(
+                connection,
+                builder.build()
+        );
+
+        Statement statement = connection.createStatement();
+        statement.execute("INSERT INTO test_change_default_table (fixed_name) VALUES ('FIXED')");
+        statement.execute("SELECT name FROM test_change_default_table");
+
+        ResultSet resultSet = statement.getResultSet();
+        assertTrue(resultSet.next());
+        String defaultValue = resultSet.getString(1);
+        assertEquals("changed-value", defaultValue);
+
+        statement.close();
+
+        connection.close();
+    }
+
+    protected abstract Profile getProfile();
+
+    protected abstract Connection getConnection() throws ClassNotFoundException;
 }

@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 public class Table {
     private String tableName;
     private List<Column> newColumns = new ArrayList<>();
-    private Collection<ForeignKey> foreignKeys = new ArrayList<>();
+    private Collection<ForeignKey> newForeignKeys = new ArrayList<>();
     private Collection<Column> changeColumns = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
@@ -30,8 +30,8 @@ public class Table {
         tableBuilder.getNewColumns()
                 .forEach(column -> newColumns.add(column.build()));
 
-        tableBuilder.getForeignColumnKeys()
-                .forEach(foreignColumnKey -> foreignKeys.add(foreignColumnKey.build()));
+        tableBuilder.getNewForeignColumnKeys()
+                .forEach(foreignColumnKey -> newForeignKeys.add(foreignColumnKey.build()));
 
         tableBuilder.getChangeColumns()
                 .forEach(column -> changeColumns.add(column.build()));
@@ -49,15 +49,15 @@ public class Table {
         return changeColumns;
     }
 
-    public Collection<ForeignKey> getForeignKeys() {
-        return foreignKeys;
+    public Collection<ForeignKey> getNewForeignKeys() {
+        return newForeignKeys;
     }
 
     public static class Builder {
         private String tableName;
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> changeColumns = new ArrayList<>();
-        private Collection<ForeignKey.Builder> foreignColumnKeys = new ArrayList<>();
+        private Collection<ForeignKey.Builder> newForeignColumnKeys = new ArrayList<>();
 
         public Builder(String tableName) {
             this.tableName = tableName;
@@ -105,7 +105,7 @@ public class Table {
 
         private ForeignKey.Builder createNewForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
             ForeignKey.Builder builder = new ForeignKey.Builder(foreignTable, localKeys, foreignKeys);
-            foreignColumnKeys.add(
+            newForeignColumnKeys.add(
                     builder
             );
 
@@ -113,24 +113,24 @@ public class Table {
         }
 
 
-        public Builder foreignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+        public Builder addForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
             createNewForeignKey(foreignTable, localKeys, foreignKeys);
 
             return this;
         }
 
-        public Builder foreignKey(String foreignTable, String localKey, String foreignKey) {
-            return foreignKey(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
+        public Builder addForeignKey(String foreignTable, String localKey, String foreignKey) {
+            return addForeignKey(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
         }
 
-        public Builder foreignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
+        public Builder addForeignKey(String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
             foreignKeyConsumer.accept(
                     createNewForeignKey(foreignTable, localKeys, foreignKeys)
             );
             return this;
         }
 
-        public Builder foreignKey(String foreignTable, String localKey, String foreignKey, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
+        public Builder addForeignKey(String foreignTable, String localKey, String foreignKey, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
             foreignKeyConsumer.accept(
                     createNewForeignKey(foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey))
             );
@@ -139,8 +139,8 @@ public class Table {
         }
 
 
-        public Collection<ForeignKey.Builder> getForeignColumnKeys() {
-            return foreignColumnKeys;
+        public Collection<ForeignKey.Builder> getNewForeignColumnKeys() {
+            return newForeignColumnKeys;
         }
 
         public String getTableName() {
