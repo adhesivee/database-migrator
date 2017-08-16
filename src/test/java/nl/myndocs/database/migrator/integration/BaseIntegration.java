@@ -8,8 +8,7 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Created by albert on 14-8-2017.
@@ -142,6 +141,51 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
+    }
+
+    @Test
+    public void testDroppedColumn() throws ClassNotFoundException, SQLException {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_dropped_column_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR)
+                .addColumn("some_table_id", Column.TYPE.INTEGER);
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("some_dropped_column_table")
+                .dropColumn("some_table_id");
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        Connection connection = getConnection();
+        Statement statement = connection.createStatement();
+
+        statement.execute("SELECT * FROM some_dropped_column_table");
+        ResultSet resultSet = statement.getResultSet();
+        ResultSetMetaData metaData = resultSet.getMetaData();
+
+        int columnCount = metaData.getColumnCount();
+
+        for (int i = 1; i <= columnCount; i++) {
+            String columnLabel = metaData.getColumnLabel(i);
+
+            if (columnLabel.equalsIgnoreCase("some_table_id")) {
+                fail("Column should not exist");
+            }
+        }
+
+        statement.close();
+        connection.close();
     }
     @Test
     public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {

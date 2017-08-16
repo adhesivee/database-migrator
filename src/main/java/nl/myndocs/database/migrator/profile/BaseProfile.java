@@ -20,7 +20,7 @@ public abstract class BaseProfile implements Profile {
         try {
             for (Table table : migration.getTables()) {
                 DatabaseMetaData metaData = connection.getMetaData();
-                ResultSet tables = metaData.getTables(null, null, table.getTableName(), new String[]{"TABLE"});
+                ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
 
                 boolean tableExists = false;
                 while (tables.next()) {
@@ -77,6 +77,14 @@ public abstract class BaseProfile implements Profile {
 
                         statement.execute(createTableQueryBuilder.toString());
                     }
+                }
+
+                for (String dropColumn : table.getDropColumns()) {
+                    String dropColumnQuery = "ALTER TABLE " + table.getTableName() + " " +
+                            "DROP COLUMN " +
+                            dropColumn;
+
+                    statement.execute(dropColumnQuery);
                 }
 
 
