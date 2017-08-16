@@ -14,7 +14,7 @@ public class Table {
     private List<Column> newColumns = new ArrayList<>();
     private Collection<ForeignKey> newForeignKeys = new ArrayList<>();
     private Collection<Column> changeColumns = new ArrayList<>();
-    private Collection<String> dropConstraints = new ArrayList<>();
+    private Collection<String> dropForeignKeys = new ArrayList<>();
     private Collection<String> dropColumns = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
@@ -39,7 +39,7 @@ public class Table {
                 .forEach(column -> changeColumns.add(column.build()));
 
         dropColumns = new ArrayList<>(tableBuilder.getDropColumns());
-        dropConstraints = new ArrayList<>(tableBuilder.getDropConstraints());
+        dropForeignKeys = new ArrayList<>(tableBuilder.getDropForeignKey());
     }
 
     public String getTableName() {
@@ -58,8 +58,8 @@ public class Table {
         return newForeignKeys;
     }
 
-    public Collection<String> getDropConstraints() {
-        return dropConstraints;
+    public Collection<String> getDropForeignKeys() {
+        return dropForeignKeys;
     }
 
     public Collection<String> getDropColumns() {
@@ -71,7 +71,7 @@ public class Table {
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> changeColumns = new ArrayList<>();
         private Collection<ForeignKey.Builder> newForeignColumnKeys = new ArrayList<>();
-        private Collection<String> dropConstraints = new ArrayList<>();
+        private Collection<String> dropForeignKey = new ArrayList<>();
         private Collection<String> dropColumns = new ArrayList<>();
 
         public Builder(String tableName) {
@@ -153,8 +153,8 @@ public class Table {
             return this;
         }
 
-        public Builder dropConstraint(String constraintName) {
-            this.dropConstraints.add(constraintName);
+        public Builder dropForeignKey(String constraintName) {
+            this.dropForeignKey.add(constraintName);
 
             return this;
         }
@@ -165,8 +165,8 @@ public class Table {
             return this;
         }
 
-        public Collection<String> getDropConstraints() {
-            return dropConstraints;
+        public Collection<String> getDropForeignKey() {
+            return dropForeignKey;
         }
 
         public Collection<String> getDropColumns() {

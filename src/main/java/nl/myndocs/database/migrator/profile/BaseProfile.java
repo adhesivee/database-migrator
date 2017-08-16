@@ -87,6 +87,13 @@ public abstract class BaseProfile implements Profile {
                     statement.execute(dropColumnQuery);
                 }
 
+                for (String constraint : table.getDropForeignKeys()) {
+                    String dropConstraintQuery = "ALTER TABLE " + table.getTableName() + " " +
+                            "DROP " + getDropForeignKeyKey() + " " +
+                            constraint;
+
+                    statement.execute(dropConstraintQuery);
+                }
 
                 for (ForeignKey foreignKey : table.getNewForeignKeys()) {
                     StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
@@ -144,6 +151,9 @@ public abstract class BaseProfile implements Profile {
 
     protected abstract String getNativeColumnDefinition(Column column);
 
+    protected String getDropForeignKeyKey() {
+        return "CONSTRAINT";
+    }
     protected String getAlterColumnKey() {
         return "ALTER";
     }

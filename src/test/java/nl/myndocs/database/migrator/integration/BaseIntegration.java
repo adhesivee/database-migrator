@@ -119,6 +119,42 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testRemoveForeignKeyConstraint() throws Exception {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_foreign_drop_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR);
+
+        builder.table("some_foreign_drop_other_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("some_table_id", Column.TYPE.INTEGER)
+                .addForeignKey("some_foreign_drop_FK", "some_foreign_drop_table", "some_table_id", "id", key -> {
+                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                });
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("some_foreign_drop_other_table")
+                .dropForeignKey("some_foreign_drop_FK");
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO some_foreign_drop_other_table (some_table_id) VALUES (1)");
+        statement.close();
+    }
+
+    @Test
     public void testAddingNewColumnsToExistingTable() throws ClassNotFoundException, SQLException {
         Migration.Builder builder = new Migration.Builder();
 

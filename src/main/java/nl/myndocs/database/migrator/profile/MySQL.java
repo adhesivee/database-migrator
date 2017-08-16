@@ -23,6 +23,11 @@ public class MySQL extends BaseProfile {
     }
 
     @Override
+    protected String getDropForeignKeyKey() {
+        return "FOREIGN KEY";
+    }
+
+    @Override
     protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
         DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
 
