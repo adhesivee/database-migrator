@@ -92,6 +92,33 @@ public abstract class BaseIntegration {
         }
     }
 
+    // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
+    @Test(expected = Exception.class)
+    public void testForeignKeyConstraint() throws Exception {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_foreign_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR);
+
+        builder.table("some_foreign_other_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("some_table_id", Column.TYPE.INTEGER)
+                .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
+                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                });
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO some_foreign_other_table (some_table_id) VALUES (1)");
+        statement.close();
+    }
+
     @Test
     public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
