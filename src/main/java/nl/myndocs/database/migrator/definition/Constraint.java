@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public class Constraint {
     public enum TYPE {
-        INDEX, UNIQUE
+        INDEX, UNIQUE, FOREIGN_KEY
     }
 
     private String constraintName;
