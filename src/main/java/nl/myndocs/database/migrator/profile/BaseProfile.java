@@ -42,32 +42,37 @@ public abstract class BaseProfile implements Profile {
                         count++;
                     }
 
-                    for (ForeignKey foreignKey : table.getNewForeignKeys()) {
-                        createTableQueryBuilder.append(",\n ");
-
-                        createTableQueryBuilder.append(
-                                String.format(
-                                        CREATE_FOREIGN_KEY_FORMAT,
-                                        String.join(",", foreignKey.getLocalKeys()),
-                                        foreignKey.getForeignTable(),
-                                        String.join(",", foreignKey.getForeignKeys())
-                                )
-                        );
-
-                        if (foreignKey.getDeleteCascade().isPresent()) {
-                            createTableQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
-                        }
-
-                        if (foreignKey.getUpdateCascade().isPresent()) {
-                            createTableQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
-                        }
-                    }
 
                     createTableQueryBuilder.append(");");
 
                     System.out.println(createTableQueryBuilder.toString());
 
                     statement.execute(createTableQueryBuilder.toString());
+                }
+
+
+                for (ForeignKey foreignKey : table.getNewForeignKeys()) {
+                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT some_constraint");
+
+                    alterForeignKeyQueryBuilder.append(
+                            String.format(
+                                    " FOREIGN KEY (%s) REFERENCES %s (%s)",
+                                    String.join(",", foreignKey.getLocalKeys()),
+                                    foreignKey.getForeignTable(),
+                                    String.join(",", foreignKey.getForeignKeys())
+                            )
+                    );
+
+                    if (foreignKey.getDeleteCascade().isPresent()) {
+                        alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
+                    }
+
+                    if (foreignKey.getUpdateCascade().isPresent()) {
+                        alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
+                    }
+
+                    statement.execute(alterForeignKeyQueryBuilder.toString());
                 }
 
                 statement.close();
