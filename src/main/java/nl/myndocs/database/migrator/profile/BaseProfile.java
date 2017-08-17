@@ -133,11 +133,17 @@ public abstract class BaseProfile implements Profile {
 
     protected void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();
-        StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
-        alterTableQueryBuilder.append(getAlterColumnTerm() + " COLUMN " + column.getColumnName() + " " + getAlterTypeTerm() + " " + getNativeColumnDefinition(column));
 
-        System.out.println(alterTableQueryBuilder.toString());
-        statement.execute(alterTableQueryBuilder.toString());
+        String alterTableQuery = String.format(
+                "ALTER TABLE %s %s COLUMN %s %s %s",
+                table.getTableName(),
+                getAlterColumnTerm(),
+                column.getColumnName(),
+                getAlterTypeTerm(),
+                getNativeColumnDefinition(column)
+        );
+        System.out.println(alterTableQuery);
+        statement.execute(alterTableQuery);
 
         statement.close();
     }
@@ -224,12 +230,13 @@ public abstract class BaseProfile implements Profile {
 
     private void processAddingForeignKeys(Table table) {
         for (ForeignKey foreignKey : table.getNewForeignKeys()) {
-            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-            alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + foreignKey.getConstraintName());
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
 
             alterForeignKeyQueryBuilder.append(
                     String.format(
-                            " FOREIGN KEY (%s) REFERENCES %s (%s)",
+                            "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
+                            table.getTableName(),
+                            foreignKey.getConstraintName(),
                             String.join(",", foreignKey.getLocalKeys()),
                             foreignKey.getForeignTable(),
                             String.join(",", foreignKey.getForeignKeys())
@@ -254,9 +261,11 @@ public abstract class BaseProfile implements Profile {
 
     private void processDropColumns(Table table) {
         for (String dropColumn : table.getDropColumns()) {
-            String dropColumnQuery = "ALTER TABLE " + table.getTableName() + " " +
-                    "DROP COLUMN " +
-                    dropColumn;
+            String dropColumnQuery = String.format(
+                    "ALTER TABLE %s DROP COLUMN %s ",
+                    table.getTableName(),
+                    dropColumn
+            );
 
             try {
                 executeInStatement(dropColumnQuery);
@@ -268,9 +277,12 @@ public abstract class BaseProfile implements Profile {
 
     private void processDropForeignKeys(Table table) {
         for (String constraint : table.getDropForeignKeys()) {
-            String dropConstraintQuery = "ALTER TABLE " + table.getTableName() + " " +
-                    "DROP " + getDropForeignKeyTerm() + " " +
-                    constraint;
+            String dropConstraintQuery = String.format(
+                    "ALTER TABLE %s DROP %s %s",
+                    table.getTableName(),
+                    getDropForeignKeyTerm(),
+                    constraint
+            );
 
             try {
                 executeInStatement(dropConstraintQuery);
@@ -283,12 +295,13 @@ public abstract class BaseProfile implements Profile {
 
     private void processAddingConstraints(Table table) {
         for (Constraint constraint : table.getNewConstraints()) {
-            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-            alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + constraint.getConstraintName());
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
 
             alterForeignKeyQueryBuilder.append(
                     String.format(
-                            " %s (%s)",
+                            "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
+                            table.getTableName(),
+                            constraint.getConstraintName(),
                             getNativeConstraintType(constraint.getType().get()),
                             String.join(",", constraint.getColumnNames())
                     )
@@ -304,11 +317,14 @@ public abstract class BaseProfile implements Profile {
 
     private void processDropConstraints(Table table) {
         for (String constraintName : table.getDropConstraints()) {
-            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-            alterForeignKeyQueryBuilder.append(" DROP " + getDropConstraintTerm() + " " + constraintName);
-
+            String alterForeignKeyQuery = String.format(
+                    "ALTER TABLE %s DROP %s %s",
+                    table.getTableName(),
+                    getDropConstraintTerm(),
+                    constraintName
+            );
             try {
-                executeInStatement(alterForeignKeyQueryBuilder.toString());
+                executeInStatement(alterForeignKeyQuery);
             } catch (SQLException e) {
                 throw new CouldNotProcessException(e);
             }
