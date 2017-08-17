@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public class Constraint {
     public enum TYPE {
-        INDEX, UNIQUE, FOREIGN_KEY
+        INDEX, UNIQUE
     }
 
     private String constraintName;
@@ -37,13 +37,10 @@ public class Constraint {
         private Optional<TYPE> type;
         private Collection<String> columnNames = new ArrayList<>();
 
-        public Builder(String constraintName) {
-            this.constraintName = constraintName;
-        }
-
-        public Builder(String constraintName, TYPE type) {
+        public Builder(String constraintName, TYPE type, Collection<String> columnNames) {
             this.constraintName = constraintName;
             this.type = Optional.ofNullable(type);
+            this.columnNames = columnNames;
         }
 
         public Builder columns(String... columnNames) {
@@ -62,6 +59,10 @@ public class Constraint {
 
         public Collection<String> getColumnNames() {
             return columnNames;
+        }
+
+        public Constraint build() {
+            return new Constraint(this);
         }
     }
 }

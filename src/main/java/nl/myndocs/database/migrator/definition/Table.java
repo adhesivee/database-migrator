@@ -13,6 +13,7 @@ public class Table {
     private String tableName;
     private List<Column> newColumns = new ArrayList<>();
     private Collection<ForeignKey> newForeignKeys = new ArrayList<>();
+    private Collection<Constraint> newConstraints = new ArrayList<>();
     private Collection<Column> changeColumns = new ArrayList<>();
     private Collection<String> dropForeignKeys = new ArrayList<>();
     private Collection<String> dropColumns = new ArrayList<>();
@@ -32,14 +33,18 @@ public class Table {
         tableBuilder.getNewColumns()
                 .forEach(column -> newColumns.add(column.build()));
 
-        tableBuilder.getNewForeignColumnKeys()
+        tableBuilder.getNewForeignKeys()
                 .forEach(foreignColumnKey -> newForeignKeys.add(foreignColumnKey.build()));
 
         tableBuilder.getChangeColumns()
                 .forEach(column -> changeColumns.add(column.build()));
 
+        tableBuilder.getNewConstraints()
+                .forEach(constraint -> newConstraints.add(constraint.build()));
+
         dropColumns = new ArrayList<>(tableBuilder.getDropColumns());
         dropForeignKeys = new ArrayList<>(tableBuilder.getDropForeignKey());
+
     }
 
     public String getTableName() {
@@ -66,11 +71,16 @@ public class Table {
         return dropColumns;
     }
 
+    public Collection<Constraint> getNewConstraints() {
+        return newConstraints;
+    }
+
     public static class Builder {
         private String tableName;
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> changeColumns = new ArrayList<>();
-        private Collection<ForeignKey.Builder> newForeignColumnKeys = new ArrayList<>();
+        private Collection<ForeignKey.Builder> newForeignKeys = new ArrayList<>();
+        private Collection<Constraint.Builder> newConstraints = new ArrayList<>();
         private Collection<String> dropForeignKey = new ArrayList<>();
         private Collection<String> dropColumns = new ArrayList<>();
 
@@ -120,7 +130,7 @@ public class Table {
 
         private ForeignKey.Builder createNewForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
             ForeignKey.Builder builder = new ForeignKey.Builder(constraintName, foreignTable, localKeys, foreignKeys);
-            newForeignColumnKeys.add(
+            newForeignKeys.add(
                     builder
             );
 
@@ -153,6 +163,18 @@ public class Table {
             return this;
         }
 
+        public Builder addConstraint(String constraintName, Constraint.TYPE type, Collection<String> columnNames) {
+            newConstraints.add(
+                    new Constraint.Builder(constraintName, type, columnNames)
+            );
+
+            return this;
+        }
+
+        public Builder addConstraint(String constraintName, Constraint.TYPE type, String columnName) {
+            return addConstraint(constraintName, type, Arrays.asList(columnName));
+        }
+
         public Builder dropForeignKey(String constraintName) {
             this.dropForeignKey.add(constraintName);
 
@@ -165,6 +187,10 @@ public class Table {
             return this;
         }
 
+        public Collection<Constraint.Builder> getNewConstraints() {
+            return newConstraints;
+        }
+
         public Collection<String> getDropForeignKey() {
             return dropForeignKey;
         }
@@ -173,8 +199,8 @@ public class Table {
             return dropColumns;
         }
 
-        public Collection<ForeignKey.Builder> getNewForeignColumnKeys() {
-            return newForeignColumnKeys;
+        public Collection<ForeignKey.Builder> getNewForeignKeys() {
+            return newForeignKeys;
         }
 
         public String getTableName() {

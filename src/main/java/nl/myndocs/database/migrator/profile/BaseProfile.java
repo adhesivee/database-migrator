@@ -1,9 +1,6 @@
 package nl.myndocs.database.migrator.profile;
 
-import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.definition.Table;
+import nl.myndocs.database.migrator.definition.*;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -93,6 +90,21 @@ public abstract class BaseProfile implements Profile {
                             constraint;
 
                     statement.execute(dropConstraintQuery);
+                }
+
+                for (Constraint constraint : table.getNewConstraints()) {
+                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + constraint.getConstraintName());
+
+                    alterForeignKeyQueryBuilder.append(
+                            String.format(
+                                    " %s (%s)",
+                                    (constraint.getType().get().equals(Constraint.TYPE.UNIQUE) ? "UNIQUE" : "INDEX"),
+                                    String.join(",", constraint.getColumnNames())
+                            )
+                    );
+
+                    statement.execute(alterForeignKeyQueryBuilder.toString());
                 }
 
                 for (ForeignKey foreignKey : table.getNewForeignKeys()) {

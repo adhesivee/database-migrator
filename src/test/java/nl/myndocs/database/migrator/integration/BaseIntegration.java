@@ -1,6 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.profile.Profile;
@@ -152,6 +153,47 @@ public abstract class BaseIntegration {
         Statement statement = getConnection().createStatement();
         statement.execute("INSERT INTO some_foreign_drop_other_table (some_table_id) VALUES (1)");
         statement.close();
+    }
+
+    @Test
+    public void testAddUniqueConstraint() throws ClassNotFoundException, SQLException {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_add_unique_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR);
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        Connection connection = getConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
+        statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
+        statement.execute("TRUNCATE TABLE some_add_unique_table");
+
+        builder = new Migration.Builder();
+
+        builder.table("some_add_unique_table")
+                .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name");
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
+        try {
+            statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
+            fail("This should no succeed");
+        } catch (Exception exception) {
+            // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
+        }
+
+        statement.close();
+        connection.close();
     }
 
     @Test
