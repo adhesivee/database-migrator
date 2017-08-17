@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.profile.HyperSQL;
-import nl.myndocs.database.migrator.profile.Profile;
+import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.engine.HyperSQL;
 
 import java.sql.Connection;
 
@@ -11,12 +11,8 @@ import java.sql.Connection;
 public class HypersqlTest extends BaseIntegration {
 
     @Override
-    protected Profile getProfile() {
-        try {
-            return new HyperSQL(getConnection());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    protected Engine getEngine() {
+        return new HyperSQL();
     }
 
     public Connection getConnection() throws ClassNotFoundException {

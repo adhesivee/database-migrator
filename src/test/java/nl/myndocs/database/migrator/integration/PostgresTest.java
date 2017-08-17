@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.profile.Postgres;
-import nl.myndocs.database.migrator.profile.Profile;
+import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.engine.Postgres;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
 import org.jboss.arquillian.junit.Arquillian;
@@ -22,12 +22,8 @@ public class PostgresTest extends BaseIntegration {
 
 
     @Override
-    protected Profile getProfile() {
-        try {
-            return new Postgres(getConnection());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    protected Engine getEngine() {
+        return new Postgres();
     }
 
     @Override

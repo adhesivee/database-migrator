@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.profile;
+package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Table;
@@ -10,26 +10,23 @@ import java.sql.Statement;
 /**
  * Created by albert on 13-8-2017.
  */
-public class Postgres extends BaseProfile {
+public class Postgres extends BaseEngine {
 
-    public Postgres(Connection connection) {
-        super(connection);
-    }
 
     @Override
-    protected String getAlterTypeTerm() {
+    public String getAlterTypeTerm() {
         return "TYPE";
     }
 
 
     @Override
-    protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
+    public void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();
         statement.execute("ALTER TABLE " + table.getTableName() + " RENAME " + column.getColumnName() + " TO " + column.getRename().get());
         statement.close();
     }
 
-    protected String getNativeColumnDefinition(Column column) {
+    public String getNativeColumnDefinition(Column column) {
         Column.TYPE columnType = column.getType().get();
         switch (columnType) {
             case INTEGER:

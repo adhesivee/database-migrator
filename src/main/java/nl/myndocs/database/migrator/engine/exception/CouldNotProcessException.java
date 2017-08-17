@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.profile.exception;
+package nl.myndocs.database.migrator.engine.exception;
 
 /**
  * Created by albert on 17-8-2017.

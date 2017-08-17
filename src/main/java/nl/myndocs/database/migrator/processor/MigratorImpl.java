@@ -1,7 +1,8 @@
-package nl.myndocs.database.migrator.profile;
+package nl.myndocs.database.migrator.processor;
 
 import nl.myndocs.database.migrator.definition.*;
-import nl.myndocs.database.migrator.profile.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -10,16 +11,17 @@ import java.util.List;
 /**
  * Created by albert on 15-8-2017.
  */
-public abstract class BaseProfile implements Profile {
+public class MigratorImpl implements Migrator {
     private static final String CREATE_FOREIGN_KEY_FORMAT = "FOREIGN KEY (%s) REFERENCES %s (%s)";
-    private static final String ALTER_TABLE_ALTER_DEFAULT = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s";
     private final Connection connection;
+    private final Engine engine;
 
-    public BaseProfile(Connection connection) {
+    public MigratorImpl(Connection connection, Engine engine) {
         this.connection = connection;
+        this.engine = engine;
     }
 
-    public void createDatabase(Migration migration) {
+    public void migrate(Migration migration) {
         try {
             for (Table table : migration.getTables()) {
                 DatabaseMetaData metaData = connection.getMetaData();
@@ -55,7 +57,7 @@ public abstract class BaseProfile implements Profile {
                     }
 
                     if (column.getDefaultValue().isPresent()) {
-                        changeColumnDefault(connection, table, column);
+                        engine.changeColumnDefault(connection, table, column);
                     }
                 }
 
@@ -63,7 +65,7 @@ public abstract class BaseProfile implements Profile {
                 // Otherwise changeColumnType and changeColumnDefault will break
                 for (Column column : table.getChangeColumns()) {
                     if (column.getRename().isPresent()) {
-                        changeColumnName(connection, table, column);
+                        engine.changeColumnName(connection, table, column);
                     }
                 }
 
@@ -72,24 +74,6 @@ public abstract class BaseProfile implements Profile {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    protected abstract String getNativeColumnDefinition(Column column);
-
-    protected String getDropForeignKeyTerm() {
-        return "CONSTRAINT";
-    }
-
-    protected String getAlterColumnTerm() {
-        return "ALTER";
-    }
-
-    protected String getAlterTypeTerm() {
-        return "";
-    }
-
-    protected String getDropConstraintTerm() {
-        return "CONSTRAINT";
     }
 
     protected String getDefaultValue(Column column) {
@@ -106,54 +90,21 @@ public abstract class BaseProfile implements Profile {
         return (column.getDefaultValue().isPresent() ? "DEFAULT " + quote + column.getDefaultValue().get() + quote + "" : "");
     }
 
-    protected String getWithSizeIfPossible(Column column) {
-        if (column.getSize().isPresent()) {
-            return "(" + column.getSize().get() + ")";
-        }
-
-        return "";
-    }
-
-    // @TODO: This should be solved more generic
-    protected abstract void changeColumnName(Connection connection, Table table, Column column) throws SQLException;
-
-    protected void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute(
-                String.format(
-                        ALTER_TABLE_ALTER_DEFAULT,
-                        table.getTableName(),
-                        column.getColumnName(),
-                        "'" + column.getDefaultValue().get() + "'"
-
-                )
-        );
-        statement.close();
-    }
-
     protected void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();
 
         String alterTableQuery = String.format(
                 "ALTER TABLE %s %s COLUMN %s %s %s",
                 table.getTableName(),
-                getAlterColumnTerm(),
+                engine.getAlterColumnTerm(),
                 column.getColumnName(),
-                getAlterTypeTerm(),
-                getNativeColumnDefinition(column)
+                engine.getAlterTypeTerm(),
+                engine.getNativeColumnDefinition(column)
         );
         System.out.println(alterTableQuery);
         statement.execute(alterTableQuery);
 
         statement.close();
-    }
-
-    protected String getWithSizeOrDefault(Column column, String defaultValue) {
-        if (column.getSize().isPresent()) {
-            return "(" + column.getSize().get() + ")";
-        }
-
-        return "(" + defaultValue + ")";
     }
 
     protected String getNativeCascadeType(ForeignKey.CASCADE cascade) {
@@ -184,7 +135,7 @@ public abstract class BaseProfile implements Profile {
 
                 createTableQueryBuilder.append(
                         column.getColumnName() + " " +
-                                getNativeColumnDefinition(column) + " " +
+                                engine.getNativeColumnDefinition(column) + " " +
                                 getDefaultValue(column) + " " +
                                 (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
                                 (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
@@ -214,7 +165,7 @@ public abstract class BaseProfile implements Profile {
                     "ALTER TABLE " + table.getTableName() + " " +
                             "ADD COLUMN " +
                             column.getColumnName() + " " +
-                            getNativeColumnDefinition(column) + " " +
+                            engine.getNativeColumnDefinition(column) + " " +
                             getDefaultValue(column) + " " +
                             (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
                             (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
@@ -280,7 +231,7 @@ public abstract class BaseProfile implements Profile {
             String dropConstraintQuery = String.format(
                     "ALTER TABLE %s DROP %s %s",
                     table.getTableName(),
-                    getDropForeignKeyTerm(),
+                    engine.getDropForeignKeyTerm(),
                     constraint
             );
 
@@ -320,7 +271,7 @@ public abstract class BaseProfile implements Profile {
             String alterForeignKeyQuery = String.format(
                     "ALTER TABLE %s DROP %s %s",
                     table.getTableName(),
-                    getDropConstraintTerm(),
+                    engine.getDropConstraintTerm(),
                     constraintName
             );
             try {

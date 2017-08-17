@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.profile.H2;
-import nl.myndocs.database.migrator.profile.Profile;
+import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.engine.H2;
 
 import java.sql.Connection;
 
@@ -11,12 +11,8 @@ import java.sql.Connection;
 public class H2Test extends BaseIntegration {
 
     @Override
-    protected Profile getProfile() {
-        try {
-            return new H2(getConnection());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    protected Engine getEngine() {
+        return new H2();
     }
 
     @Override

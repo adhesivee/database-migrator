@@ -4,7 +4,9 @@ import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.profile.Profile;
+import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.processor.Migrator;
+import nl.myndocs.database.migrator.processor.MigratorImpl;
 import org.junit.Test;
 
 import java.sql.*;
@@ -18,7 +20,7 @@ public abstract class BaseIntegration {
     @Test
     public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
         Connection connection = getConnection();
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 buildMigration()
         );
 
@@ -108,7 +110,7 @@ public abstract class BaseIntegration {
                     key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
                 });
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -133,7 +135,7 @@ public abstract class BaseIntegration {
                     key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
                 });
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -142,7 +144,7 @@ public abstract class BaseIntegration {
         builder.table("some_foreign_drop_other_table")
                 .dropForeignKey("some_foreign_drop_FK");
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -159,7 +161,7 @@ public abstract class BaseIntegration {
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR);
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -174,7 +176,7 @@ public abstract class BaseIntegration {
         builder.table("some_add_unique_table")
                 .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name");
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -198,7 +200,7 @@ public abstract class BaseIntegration {
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR);
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -208,7 +210,7 @@ public abstract class BaseIntegration {
         builder.table("some_add_and_drop_unique_table")
                 .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name");
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -217,7 +219,7 @@ public abstract class BaseIntegration {
         builder.table("some_add_and_drop_unique_table")
                 .dropConstraint("unique_add_and_drop_constraint_name");
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -238,7 +240,7 @@ public abstract class BaseIntegration {
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                 .addColumn("name", Column.TYPE.VARCHAR);
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -247,7 +249,7 @@ public abstract class BaseIntegration {
         builder.table("some_appending_table")
                 .addColumn("some_table_id", Column.TYPE.INTEGER);
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -262,7 +264,7 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR)
                 .addColumn("some_table_id", Column.TYPE.INTEGER);
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -271,7 +273,7 @@ public abstract class BaseIntegration {
         builder.table("some_dropped_column_table")
                 .dropColumn("some_table_id");
 
-        getProfile().createDatabase(
+        getMigrator().migrate(
                 builder.build()
         );
 
@@ -298,7 +300,7 @@ public abstract class BaseIntegration {
     @Test
     public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
-        Profile profile = getProfile();
+        Migrator migrator = getMigrator();
 
         Migration.Builder builder = new Migration.Builder();
 
@@ -308,7 +310,7 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
 
 
-        profile.createDatabase(
+        migrator.migrate(
                 builder.build()
         );
 
@@ -317,7 +319,7 @@ public abstract class BaseIntegration {
         builder.table("test_rename_table")
                 .changeColumn("name", column -> column.rename("renamed"));
 
-        profile.createDatabase(
+        migrator.migrate(
                 builder.build()
         );
 
@@ -338,7 +340,7 @@ public abstract class BaseIntegration {
     @Test
     public void testChangingDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
-        Profile profile = getProfile();
+        Migrator migrator = getMigrator();
         Migration.Builder builder = new Migration.Builder();
 
         builder.table("test_change_default_table")
@@ -347,7 +349,7 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
 
 
-        profile.createDatabase(
+        migrator.migrate(
                 builder.build()
         );
 
@@ -356,7 +358,7 @@ public abstract class BaseIntegration {
         builder.table("test_change_default_table")
                 .changeColumn("name", column -> column.defaultValue("changed-value"));
 
-        profile.createDatabase(
+        migrator.migrate(
                 builder.build()
         );
 
@@ -374,7 +376,14 @@ public abstract class BaseIntegration {
         connection.close();
     }
 
-    protected abstract Profile getProfile();
+    protected Migrator getMigrator() {
+        try {
+            return new MigratorImpl(getConnection(), getEngine());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Could not execute");
+        }
+    }
 
+    protected abstract Engine getEngine();
     protected abstract Connection getConnection() throws ClassNotFoundException;
 }
