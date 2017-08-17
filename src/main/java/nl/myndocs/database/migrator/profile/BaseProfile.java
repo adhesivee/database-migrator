@@ -89,7 +89,7 @@ public abstract class BaseProfile implements Profile {
 
                 for (String constraint : table.getDropForeignKeys()) {
                     String dropConstraintQuery = "ALTER TABLE " + table.getTableName() + " " +
-                            "DROP " + getDropForeignKeyKey() + " " +
+                            "DROP " + getDropForeignKeyTerm() + " " +
                             constraint;
 
                     statement.execute(dropConstraintQuery);
@@ -151,14 +151,15 @@ public abstract class BaseProfile implements Profile {
 
     protected abstract String getNativeColumnDefinition(Column column);
 
-    protected String getDropForeignKeyKey() {
+    protected String getDropForeignKeyTerm() {
         return "CONSTRAINT";
     }
-    protected String getAlterColumnKey() {
+
+    protected String getAlterColumnTerm() {
         return "ALTER";
     }
 
-    protected String getAlterTypeKey() {
+    protected String getAlterTypeTerm() {
         return "";
     }
 
@@ -204,7 +205,7 @@ public abstract class BaseProfile implements Profile {
     protected void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();
         StringBuilder alterTableQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName() + " ");
-        alterTableQueryBuilder.append(getAlterColumnKey() + " COLUMN " + column.getColumnName() + " " + getAlterTypeKey() + " " + getNativeColumnDefinition(column));
+        alterTableQueryBuilder.append(getAlterColumnTerm() + " COLUMN " + column.getColumnName() + " " + getAlterTypeTerm() + " " + getNativeColumnDefinition(column));
 
         System.out.println(alterTableQueryBuilder.toString());
         statement.execute(alterTableQueryBuilder.toString());

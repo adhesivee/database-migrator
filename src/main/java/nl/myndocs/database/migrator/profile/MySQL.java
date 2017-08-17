@@ -18,12 +18,12 @@ public class MySQL extends BaseProfile {
     private static final String ALTER_TABLE_FORMAT = "ALTER TABLE %s CHANGE %s %s %s %s %s";
 
     @Override
-    protected String getAlterColumnKey() {
+    protected String getAlterColumnTerm() {
         return "MODIFY";
     }
 
     @Override
-    protected String getDropForeignKeyKey() {
+    protected String getDropForeignKeyTerm() {
         return "FOREIGN KEY";
     }
 
