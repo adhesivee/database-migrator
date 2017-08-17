@@ -289,7 +289,7 @@ public abstract class BaseProfile implements Profile {
             alterForeignKeyQueryBuilder.append(
                     String.format(
                             " %s (%s)",
-                            (constraint.getType().get().equals(Constraint.TYPE.UNIQUE) ? "UNIQUE" : "INDEX"),
+                            getNativeConstraintType(constraint.getType().get()),
                             String.join(",", constraint.getColumnNames())
                     )
             );
@@ -319,5 +319,16 @@ public abstract class BaseProfile implements Profile {
         Statement statement = connection.createStatement();
         statement.execute(query);
         statement.close();
+    }
+
+    private String getNativeConstraintType(Constraint.TYPE type) {
+        switch (type) {
+            case INDEX:
+                return "INDEX";
+            case UNIQUE:
+                return "UNIQUE";
+        }
+
+        throw new RuntimeException("Could not process native constraint type");
     }
 }
