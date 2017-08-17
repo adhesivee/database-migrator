@@ -23,7 +23,11 @@ public class PostgresTest extends BaseIntegration {
 
     @Override
     protected Profile getProfile() {
-        return new Postgres();
+        try {
+            return new Postgres(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

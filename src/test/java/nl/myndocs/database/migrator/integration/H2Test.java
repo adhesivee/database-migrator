@@ -12,7 +12,11 @@ public class H2Test extends BaseIntegration {
 
     @Override
     protected Profile getProfile() {
-        return new H2();
+        try {
+            return new H2(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

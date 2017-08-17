@@ -1,6 +1,7 @@
 package nl.myndocs.database.migrator.profile;
 
 import nl.myndocs.database.migrator.definition.*;
+import nl.myndocs.database.migrator.profile.exception.CouldNotProcessException;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -12,8 +13,13 @@ import java.util.List;
 public abstract class BaseProfile implements Profile {
     private static final String CREATE_FOREIGN_KEY_FORMAT = "FOREIGN KEY (%s) REFERENCES %s (%s)";
     private static final String ALTER_TABLE_ALTER_DEFAULT = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s";
+    private final Connection connection;
 
-    public void createDatabase(Connection connection, Migration migration) {
+    public BaseProfile(Connection connection) {
+        this.connection = connection;
+    }
+
+    public void createDatabase(Migration migration) {
         try {
             for (Table table : migration.getTables()) {
                 DatabaseMetaData metaData = connection.getMetaData();
@@ -29,138 +35,38 @@ public abstract class BaseProfile implements Profile {
                 Statement statement = connection.createStatement();
 
                 if (tableExists) {
-                    for (Column column : table.getNewColumns()) {
-                        StringBuilder addColumnQueryBuilder = new StringBuilder();
-
-                        addColumnQueryBuilder.append(
-                                "ALTER TABLE " + table.getTableName() + " " +
-                                        "ADD COLUMN " +
-                                        column.getColumnName() + " " +
-                                        getNativeColumnDefinition(column) + " " +
-                                        getDefaultValue(column) + " " +
-                                        (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                                        (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
-                        );
-
-                        statement.execute(addColumnQueryBuilder.toString());
-                    }
-
+                    processAddingColumnsWithAlter(table);
                 } else {
-
-                    if (table.getNewColumns().size() > 0) {
-                        StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
-
-                        int count = 0;
-                        for (Column column : table.getNewColumns()) {
-                            if (count > 0) {
-                                createTableQueryBuilder.append(",\n");
-                            }
-
-                            createTableQueryBuilder.append(
-                                    column.getColumnName() + " " +
-                                            getNativeColumnDefinition(column) + " " +
-                                            getDefaultValue(column) + " " +
-                                            (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                                            (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
-                            );
-
-                            count++;
-                        }
-
-
-                        createTableQueryBuilder.append(");");
-
-                        System.out.println(createTableQueryBuilder.toString());
-
-                        statement.execute(createTableQueryBuilder.toString());
-                    }
+                    processAddingColumnsWithCreate(table);
                 }
 
-                for (String dropColumn : table.getDropColumns()) {
-                    String dropColumnQuery = "ALTER TABLE " + table.getTableName() + " " +
-                            "DROP COLUMN " +
-                            dropColumn;
 
-                    statement.execute(dropColumnQuery);
-                }
-
-                for (String constraint : table.getDropForeignKeys()) {
-                    String dropConstraintQuery = "ALTER TABLE " + table.getTableName() + " " +
-                            "DROP " + getDropForeignKeyTerm() + " " +
-                            constraint;
-
-                    statement.execute(dropConstraintQuery);
-                }
-
-                for (Constraint constraint : table.getNewConstraints()) {
-                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + constraint.getConstraintName());
-
-                    alterForeignKeyQueryBuilder.append(
-                            String.format(
-                                    " %s (%s)",
-                                    (constraint.getType().get().equals(Constraint.TYPE.UNIQUE) ? "UNIQUE" : "INDEX"),
-                                    String.join(",", constraint.getColumnNames())
-                            )
-                    );
-
-                    statement.execute(alterForeignKeyQueryBuilder.toString());
-                }
-
-                for (String constraintName : table.getDropConstraints()) {
-                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-                    alterForeignKeyQueryBuilder.append(" DROP " + getDropConstraintTerm() + " " + constraintName);
-
-                    statement.execute(alterForeignKeyQueryBuilder.toString());
-                }
-
-                for (ForeignKey foreignKey : table.getNewForeignKeys()) {
-                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
-                    alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + foreignKey.getConstraintName());
-
-                    alterForeignKeyQueryBuilder.append(
-                            String.format(
-                                    " FOREIGN KEY (%s) REFERENCES %s (%s)",
-                                    String.join(",", foreignKey.getLocalKeys()),
-                                    foreignKey.getForeignTable(),
-                                    String.join(",", foreignKey.getForeignKeys())
-                            )
-                    );
-
-                    if (foreignKey.getDeleteCascade().isPresent()) {
-                        alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
-                    }
-
-                    if (foreignKey.getUpdateCascade().isPresent()) {
-                        alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
-                    }
-
-                    statement.execute(alterForeignKeyQueryBuilder.toString());
-                }
+                processDropColumns(table);
+                processDropForeignKeys(table);
+                processAddingConstraints(table);
+                processDropConstraints(table);
+                processAddingForeignKeys(table);
 
                 statement.close();
 
-                if (table.getChangeColumns().size() > 0) {
-
-                    for (Column column : table.getChangeColumns()) {
-                        if (column.getType().isPresent()) {
-                            changeColumnType(connection, table, column);
-                        }
-
-                        if (column.getDefaultValue().isPresent()) {
-                            changeColumnDefault(connection, table, column);
-                        }
+                for (Column column : table.getChangeColumns()) {
+                    if (column.getType().isPresent()) {
+                        changeColumnType(connection, table, column);
                     }
 
-                    // Make sure renames always happens last
-                    // Otherwise changeColumnType and changeColumnDefault will break
-                    for (Column column : table.getChangeColumns()) {
-                        if (column.getRename().isPresent()) {
-                            changeColumnName(connection, table, column);
-                        }
+                    if (column.getDefaultValue().isPresent()) {
+                        changeColumnDefault(connection, table, column);
                     }
-
                 }
+
+                // Make sure renames always happens last
+                // Otherwise changeColumnType and changeColumnDefault will break
+                for (Column column : table.getChangeColumns()) {
+                    if (column.getRename().isPresent()) {
+                        changeColumnName(connection, table, column);
+                    }
+                }
+
 
             }
         } catch (SQLException e) {
@@ -258,5 +164,160 @@ public abstract class BaseProfile implements Profile {
                 return "CASCADE";
         }
         throw new RuntimeException("Unknown type");
+    }
+
+    private void processAddingColumnsWithCreate(Table table) {
+        if (table.getNewColumns().size() > 0) {
+            StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
+
+            int count = 0;
+            for (Column column : table.getNewColumns()) {
+                if (count > 0) {
+                    createTableQueryBuilder.append(",\n");
+                }
+
+                createTableQueryBuilder.append(
+                        column.getColumnName() + " " +
+                                getNativeColumnDefinition(column) + " " +
+                                getDefaultValue(column) + " " +
+                                (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                                (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
+                );
+
+                count++;
+            }
+
+
+            createTableQueryBuilder.append(");");
+
+            System.out.println(createTableQueryBuilder.toString());
+
+            try {
+                executeInStatement(createTableQueryBuilder.toString());
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void processAddingColumnsWithAlter(Table table) {
+        for (Column column : table.getNewColumns()) {
+            StringBuilder addColumnQueryBuilder = new StringBuilder();
+
+            addColumnQueryBuilder.append(
+                    "ALTER TABLE " + table.getTableName() + " " +
+                            "ADD COLUMN " +
+                            column.getColumnName() + " " +
+                            getNativeColumnDefinition(column) + " " +
+                            getDefaultValue(column) + " " +
+                            (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                            (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
+            );
+
+            try {
+                executeInStatement(addColumnQueryBuilder.toString());
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void processAddingForeignKeys(Table table) {
+        for (ForeignKey foreignKey : table.getNewForeignKeys()) {
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+            alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + foreignKey.getConstraintName());
+
+            alterForeignKeyQueryBuilder.append(
+                    String.format(
+                            " FOREIGN KEY (%s) REFERENCES %s (%s)",
+                            String.join(",", foreignKey.getLocalKeys()),
+                            foreignKey.getForeignTable(),
+                            String.join(",", foreignKey.getForeignKeys())
+                    )
+            );
+
+            if (foreignKey.getDeleteCascade().isPresent()) {
+                alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
+            }
+
+            if (foreignKey.getUpdateCascade().isPresent()) {
+                alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
+            }
+
+            try {
+                executeInStatement(alterForeignKeyQueryBuilder.toString());
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void processDropColumns(Table table) {
+        for (String dropColumn : table.getDropColumns()) {
+            String dropColumnQuery = "ALTER TABLE " + table.getTableName() + " " +
+                    "DROP COLUMN " +
+                    dropColumn;
+
+            try {
+                executeInStatement(dropColumnQuery);
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void processDropForeignKeys(Table table) {
+        for (String constraint : table.getDropForeignKeys()) {
+            String dropConstraintQuery = "ALTER TABLE " + table.getTableName() + " " +
+                    "DROP " + getDropForeignKeyTerm() + " " +
+                    constraint;
+
+            try {
+                executeInStatement(dropConstraintQuery);
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+
+    }
+
+    private void processAddingConstraints(Table table) {
+        for (Constraint constraint : table.getNewConstraints()) {
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+            alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + constraint.getConstraintName());
+
+            alterForeignKeyQueryBuilder.append(
+                    String.format(
+                            " %s (%s)",
+                            (constraint.getType().get().equals(Constraint.TYPE.UNIQUE) ? "UNIQUE" : "INDEX"),
+                            String.join(",", constraint.getColumnNames())
+                    )
+            );
+
+            try {
+                executeInStatement(alterForeignKeyQueryBuilder.toString());
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void processDropConstraints(Table table) {
+        for (String constraintName : table.getDropConstraints()) {
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+            alterForeignKeyQueryBuilder.append(" DROP " + getDropConstraintTerm() + " " + constraintName);
+
+            try {
+                executeInStatement(alterForeignKeyQueryBuilder.toString());
+            } catch (SQLException e) {
+                throw new CouldNotProcessException(e);
+            }
+        }
+    }
+
+    private void executeInStatement(String query) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute(query);
+        statement.close();
     }
 }

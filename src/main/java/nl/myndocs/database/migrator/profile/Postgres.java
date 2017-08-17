@@ -12,6 +12,10 @@ import java.sql.Statement;
  */
 public class Postgres extends BaseProfile {
 
+    public Postgres(Connection connection) {
+        super(connection);
+    }
+
     @Override
     protected String getAlterTypeTerm() {
         return "TYPE";

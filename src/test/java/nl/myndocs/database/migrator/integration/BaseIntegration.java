@@ -19,7 +19,6 @@ public abstract class BaseIntegration {
     public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
         Connection connection = getConnection();
         getProfile().createDatabase(
-                connection,
                 buildMigration()
         );
 
@@ -110,7 +109,6 @@ public abstract class BaseIntegration {
                 });
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -136,7 +134,6 @@ public abstract class BaseIntegration {
                 });
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -146,7 +143,6 @@ public abstract class BaseIntegration {
                 .dropForeignKey("some_foreign_drop_FK");
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -164,7 +160,6 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR);
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -180,7 +175,6 @@ public abstract class BaseIntegration {
                 .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name");
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -205,7 +199,6 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR);
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -216,7 +209,6 @@ public abstract class BaseIntegration {
                 .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name");
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -226,7 +218,6 @@ public abstract class BaseIntegration {
                 .dropConstraint("unique_add_and_drop_constraint_name");
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -248,7 +239,6 @@ public abstract class BaseIntegration {
                 .addColumn("name", Column.TYPE.VARCHAR);
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -258,7 +248,6 @@ public abstract class BaseIntegration {
                 .addColumn("some_table_id", Column.TYPE.INTEGER);
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -274,7 +263,6 @@ public abstract class BaseIntegration {
                 .addColumn("some_table_id", Column.TYPE.INTEGER);
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -284,7 +272,6 @@ public abstract class BaseIntegration {
                 .dropColumn("some_table_id");
 
         getProfile().createDatabase(
-                getConnection(),
                 builder.build()
         );
 
@@ -322,7 +309,6 @@ public abstract class BaseIntegration {
 
 
         profile.createDatabase(
-                connection,
                 builder.build()
         );
 
@@ -332,7 +318,6 @@ public abstract class BaseIntegration {
                 .changeColumn("name", column -> column.rename("renamed"));
 
         profile.createDatabase(
-                connection,
                 builder.build()
         );
 
@@ -363,7 +348,6 @@ public abstract class BaseIntegration {
 
 
         profile.createDatabase(
-                connection,
                 builder.build()
         );
 
@@ -373,7 +357,6 @@ public abstract class BaseIntegration {
                 .changeColumn("name", column -> column.defaultValue("changed-value"));
 
         profile.createDatabase(
-                connection,
                 builder.build()
         );
 

@@ -12,7 +12,11 @@ public class HypersqlTest extends BaseIntegration {
 
     @Override
     protected Profile getProfile() {
-        return new HyperSQL();
+        try {
+            return new HyperSQL(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Connection getConnection() throws ClassNotFoundException {

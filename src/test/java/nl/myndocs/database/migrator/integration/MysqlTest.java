@@ -25,7 +25,11 @@ public class MysqlTest extends BaseIntegration {
 
     @Override
     protected Profile getProfile() {
-        return new MySQL();
+        try {
+            return new MySQL(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

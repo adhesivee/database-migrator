@@ -12,6 +12,10 @@ import java.sql.Statement;
  */
 public class H2 extends BaseProfile {
 
+    public H2(Connection connection) {
+        super(connection);
+    }
+
     @Override
     protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();

@@ -17,6 +17,10 @@ public class MySQL extends BaseProfile {
     private static Logger logger = LoggerFactory.getLogger(MySQL.class);
     private static final String ALTER_TABLE_FORMAT = "ALTER TABLE %s CHANGE %s %s %s %s %s";
 
+    public MySQL(Connection connection) {
+        super(connection);
+    }
+
     @Override
     protected String getAlterColumnTerm() {
         return "MODIFY";

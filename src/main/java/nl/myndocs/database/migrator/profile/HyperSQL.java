@@ -12,6 +12,10 @@ import java.sql.Statement;
  */
 public class HyperSQL extends BaseProfile  {
 
+    public HyperSQL(Connection connection) {
+        super(connection);
+    }
+
     @Override
     protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
         Statement statement = connection.createStatement();
