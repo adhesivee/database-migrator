@@ -17,6 +17,7 @@ public class Table {
     private Collection<Column> changeColumns = new ArrayList<>();
     private Collection<String> dropForeignKeys = new ArrayList<>();
     private Collection<String> dropColumns = new ArrayList<>();
+    private Collection<String> dropConstraints = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
         tableName = tableBuilder.getTableName();
@@ -44,6 +45,7 @@ public class Table {
 
         dropColumns = new ArrayList<>(tableBuilder.getDropColumns());
         dropForeignKeys = new ArrayList<>(tableBuilder.getDropForeignKey());
+        dropConstraints = new ArrayList<>(tableBuilder.getDropConstraints());
 
     }
 
@@ -71,6 +73,10 @@ public class Table {
         return dropColumns;
     }
 
+    public Collection<String> getDropConstraints() {
+        return dropConstraints;
+    }
+
     public Collection<Constraint> getNewConstraints() {
         return newConstraints;
     }
@@ -83,6 +89,7 @@ public class Table {
         private Collection<Constraint.Builder> newConstraints = new ArrayList<>();
         private Collection<String> dropForeignKey = new ArrayList<>();
         private Collection<String> dropColumns = new ArrayList<>();
+        private Collection<String> dropConstraints = new ArrayList<>();
 
         public Builder(String tableName) {
             this.tableName = tableName;
@@ -171,6 +178,12 @@ public class Table {
             return this;
         }
 
+        public Builder dropConstraint(String constraintName) {
+            dropConstraints.add(constraintName);
+
+            return this;
+        }
+
         public Builder addConstraint(String constraintName, Constraint.TYPE type, String columnName) {
             return addConstraint(constraintName, type, Arrays.asList(columnName));
         }
@@ -189,6 +202,11 @@ public class Table {
 
         public Collection<Constraint.Builder> getNewConstraints() {
             return newConstraints;
+        }
+
+
+        public Collection<String> getDropConstraints() {
+            return dropConstraints;
         }
 
         public Collection<String> getDropForeignKey() {

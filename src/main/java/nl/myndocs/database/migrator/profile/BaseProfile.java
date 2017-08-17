@@ -107,6 +107,13 @@ public abstract class BaseProfile implements Profile {
                     statement.execute(alterForeignKeyQueryBuilder.toString());
                 }
 
+                for (String constraintName : table.getDropConstraints()) {
+                    StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
+                    alterForeignKeyQueryBuilder.append(" DROP " + getDropConstraintTerm() + " " + constraintName);
+
+                    statement.execute(alterForeignKeyQueryBuilder.toString());
+                }
+
                 for (ForeignKey foreignKey : table.getNewForeignKeys()) {
                     StringBuilder alterForeignKeyQueryBuilder = new StringBuilder("ALTER TABLE " + table.getTableName());
                     alterForeignKeyQueryBuilder.append(" ADD CONSTRAINT " + foreignKey.getConstraintName());
@@ -173,6 +180,10 @@ public abstract class BaseProfile implements Profile {
 
     protected String getAlterTypeTerm() {
         return "";
+    }
+
+    protected String getDropConstraintTerm() {
+        return "CONSTRAINT";
     }
 
     protected String getDefaultValue(Column column) {

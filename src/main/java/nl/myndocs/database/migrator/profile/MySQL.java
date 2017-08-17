@@ -28,6 +28,11 @@ public class MySQL extends BaseProfile {
     }
 
     @Override
+    protected String getDropConstraintTerm() {
+        return "INDEX";
+    }
+
+    @Override
     protected void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
         DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
 

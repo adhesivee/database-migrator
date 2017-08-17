@@ -197,6 +197,49 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testDropUniqueConstraint() throws Exception {
+        Migration.Builder builder = new Migration.Builder();
+
+        builder.table("some_add_and_drop_unique_table")
+                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                .addColumn("name", Column.TYPE.VARCHAR);
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+
+        builder = new Migration.Builder();
+
+        builder.table("some_add_and_drop_unique_table")
+                .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name");
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        builder = new Migration.Builder();
+
+        builder.table("some_add_and_drop_unique_table")
+                .dropConstraint("unique_add_and_drop_constraint_name");
+
+        getProfile().createDatabase(
+                getConnection(),
+                builder.build()
+        );
+
+        Connection connection = getConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("INSERT INTO some_add_and_drop_unique_table (name) VALUES ('test1')");
+        statement.execute("INSERT INTO some_add_and_drop_unique_table (name) VALUES ('test1')");
+
+        statement.close();
+        connection.close();
+    }
+
+    @Test
     public void testAddingNewColumnsToExistingTable() throws ClassNotFoundException, SQLException {
         Migration.Builder builder = new Migration.Builder();
 
