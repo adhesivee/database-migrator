@@ -20,9 +20,9 @@ public class H2 extends BaseEngine {
             case INTEGER:
                 return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
             case VARCHAR:
-                return "VARCHAR " + getWithSizeOrDefault(column, "255");
+                return "VARCHAR " + getWithSizeOrDefault(column, 255);
             case CHAR:
-                return "CHAR " + getWithSizeOrDefault(column, "255");
+                return "CHAR " + getWithSizeOrDefault(column, 255);
             case UUID:
                 return "UUID";
         }

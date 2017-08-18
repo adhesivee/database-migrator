@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static nl.myndocs.database.migrator.engine.query.Phrase.*;
 
@@ -40,6 +41,73 @@ public abstract class BaseEngine implements Engine {
         phrasesMap.put(Phrase.DROP_COLUMN, query -> "DROP COLUMN " + query.getColumnName());
         phrasesMap.put(Phrase.DROP_FOREIGN_KEY, query -> "DROP CONSTRAINT " + query.getConstraintName());
         phrasesMap.put(Phrase.DROP_CONSTRAINT, query -> "DROP CONSTRAINT " + query.getConstraintName());
+        phrasesMap.put(Phrase.ADD_CONSTRAINT, query -> {
+            Constraint constraint = query.getConstraint();
+            return String.format(
+                    "ADD CONSTRAINT %s %s (%s)",
+                    constraint.getConstraintName(),
+                    getNativeConstraintType(constraint.getType().get()),
+                    String.join(",", constraint.getColumnNames())
+            );
+        });
+        phrasesMap.put(Phrase.ADD_FOREIGN_KEY, query -> {
+            ForeignKey foreignKey = query.getForeignKey();
+            StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
+
+            alterForeignKeyQueryBuilder.append(
+                    String.format(
+                            "ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
+                            foreignKey.getConstraintName(),
+                            String.join(",", foreignKey.getLocalKeys()),
+                            foreignKey.getForeignTable(),
+                            String.join(",", foreignKey.getForeignKeys())
+                    )
+            );
+
+            if (foreignKey.getDeleteCascade().isPresent()) {
+                alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
+            }
+
+            if (foreignKey.getUpdateCascade().isPresent()) {
+                alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
+            }
+
+            return alterForeignKeyQueryBuilder.toString();
+        });
+        phrasesMap.put(Phrase.CREATE_TABLE, query -> {
+            Table table = query.getTable();
+
+            List<String> createColumnQueries = table.getNewColumns()
+                    .stream()
+                    .map(column -> getQueries(
+                            new Query()
+                                    .query(ADD_COLUMN)
+                                    .setColumn(column)
+                            )
+                    )
+                    .flatMap(queries -> Arrays.asList(queries).stream())
+                    .collect(Collectors.toList());
+
+            return String.format(
+                    "CREATE TABLE %s (%s)",
+                    table.getTableName(),
+                    String.join(",", createColumnQueries)
+            );
+        });
+        phrasesMap.put(Phrase.ADD_COLUMN, query -> {
+            Column column = query.getColumn();
+
+            boolean isAlterTable = query.getPhrases()
+                    .get(0)
+                    .equals(Phrase.ALTER_TABLE);
+
+            return (isAlterTable ? "ADD COLUMN " : "") +
+                    column.getColumnName() + " " +
+                    getNativeColumnDefinition(column) + " " +
+                    getDefaultValue(column) + " " +
+                    (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                    (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " ";
+        });
     }
 
     protected String buildQuery(Query query, Function<Query, String>... queryBuilders) {
@@ -59,12 +127,8 @@ public abstract class BaseEngine implements Engine {
         return "";
     }
 
-    protected String getWithSizeOrDefault(Column column, String defaultValue) {
-        if (column.getSize().isPresent()) {
-            return "(" + column.getSize().get() + ")";
-        }
-
-        return "(" + defaultValue + ")";
+    protected String getWithSizeOrDefault(Column column, int defaultSize) {
+        return "(" + column.getSize().orElse(defaultSize) + ")";
     }
 
     @Override
@@ -75,7 +139,6 @@ public abstract class BaseEngine implements Engine {
                 .setColumn(column);
 
         executeQuery(query);
-
     }
 
     protected void executeQuery(Query query) {
@@ -121,118 +184,36 @@ public abstract class BaseEngine implements Engine {
         executeQuery(query);
     }
 
-    protected String getNativeConstraintType(Constraint.TYPE type) {
-        switch (type) {
-            case INDEX:
-                return "INDEX";
-            case UNIQUE:
-                return "UNIQUE";
-        }
-
-        throw new RuntimeException("Could not process native constraint type");
-    }
-
-    protected void executeInStatement(String query) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute(query);
-        statement.close();
-    }
-
-    protected void executeInStatement(String[] queries) throws SQLException {
-        Statement statement = connection.createStatement();
-        for (String query : queries) {
-            statement.execute(query);
-        }
-
-        statement.close();
-    }
-
     @Override
     public void addColumnsWithCreateTable(Table table) {
         if (table.getNewColumns().size() > 0) {
-            StringBuilder createTableQueryBuilder = new StringBuilder("CREATE TABLE " + table.getTableName() + " (\n");
+            Query query = new Query().query(CREATE_TABLE)
+                    .setTable(table);
 
-            int count = 0;
-            for (Column column : table.getNewColumns()) {
-                if (count > 0) {
-                    createTableQueryBuilder.append(",\n");
-                }
-
-                createTableQueryBuilder.append(
-                        column.getColumnName() + " " +
-                                getNativeColumnDefinition(column) + " " +
-                                getDefaultValue(column) + " " +
-                                (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                                (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
-                );
-
-                count++;
-            }
-
-
-            createTableQueryBuilder.append(")");
-
-            System.out.println(createTableQueryBuilder.toString());
-
-            try {
-                executeInStatement(createTableQueryBuilder.toString());
-            } catch (SQLException e) {
-                throw new CouldNotProcessException(e);
-            }
+            executeQuery(query);
         }
     }
 
     @Override
     public void addColumnsWithAlterTable(Table table) {
         for (Column column : table.getNewColumns()) {
-            StringBuilder addColumnQueryBuilder = new StringBuilder();
+            Query query = new Query()
+                    .query(ALTER_TABLE, ADD_COLUMN)
+                    .setTable(table)
+                    .setColumn(column);
 
-            addColumnQueryBuilder.append(
-                    "ALTER TABLE " + table.getTableName() + " " +
-                            "ADD COLUMN " +
-                            column.getColumnName() + " " +
-                            getNativeColumnDefinition(column) + " " +
-                            getDefaultValue(column) + " " +
-                            (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                            (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
-            );
-
-            try {
-                executeInStatement(addColumnQueryBuilder.toString());
-            } catch (SQLException e) {
-                throw new CouldNotProcessException(e);
-            }
+            executeQuery(query);
         }
     }
 
     @Override
     public void addForeignKey(Table table, ForeignKey foreignKey) {
-        StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
+        Query query = new Query()
+                .query(ALTER_TABLE, ADD_FOREIGN_KEY)
+                .setTable(table)
+                .setForeignKey(foreignKey);
 
-        alterForeignKeyQueryBuilder.append(
-                String.format(
-                        "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
-                        table.getTableName(),
-                        foreignKey.getConstraintName(),
-                        String.join(",", foreignKey.getLocalKeys()),
-                        foreignKey.getForeignTable(),
-                        String.join(",", foreignKey.getForeignKeys())
-                )
-        );
-
-        if (foreignKey.getDeleteCascade().isPresent()) {
-            alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKey.getDeleteCascade().get()));
-        }
-
-        if (foreignKey.getUpdateCascade().isPresent()) {
-            alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKey.getUpdateCascade().get()));
-        }
-
-        try {
-            executeInStatement(alterForeignKeyQueryBuilder.toString());
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
+        executeQuery(query);
     }
 
     @Override
@@ -257,23 +238,12 @@ public abstract class BaseEngine implements Engine {
 
     @Override
     public void addConstraint(Table table, Constraint constraint) {
-        StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
+        Query query = new Query()
+                .query(ALTER_TABLE, ADD_CONSTRAINT)
+                .setTable(table)
+                .setConstraint(constraint);
 
-        alterForeignKeyQueryBuilder.append(
-                String.format(
-                        "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
-                        table.getTableName(),
-                        constraint.getConstraintName(),
-                        getNativeConstraintType(constraint.getType().get()),
-                        String.join(",", constraint.getColumnNames())
-                )
-        );
-
-        try {
-            executeInStatement(alterForeignKeyQueryBuilder.toString());
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
+        executeQuery(query);
     }
 
     @Override
@@ -302,6 +272,17 @@ public abstract class BaseEngine implements Engine {
         throw new RuntimeException("Unknown type");
     }
 
+    protected String getNativeConstraintType(Constraint.TYPE type) {
+        switch (type) {
+            case INDEX:
+                return "INDEX";
+            case UNIQUE:
+                return "UNIQUE";
+        }
+
+        throw new RuntimeException("Could not process native constraint type");
+    }
+
     protected String getDefaultValue(Column column) {
         String quote = "";
 
@@ -314,6 +295,21 @@ public abstract class BaseEngine implements Engine {
         }
 
         return (column.getDefaultValue().isPresent() ? "DEFAULT " + quote + column.getDefaultValue().get() + quote + "" : "");
+    }
+
+    protected void executeInStatement(String query) throws SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute(query);
+        statement.close();
+    }
+
+    protected void executeInStatement(String[] queries) throws SQLException {
+        Statement statement = connection.createStatement();
+        for (String query : queries) {
+            statement.execute(query);
+        }
+
+        statement.close();
     }
 
     protected abstract String getNativeColumnDefinition(Column column);

@@ -20,9 +20,9 @@ public class HyperSQL extends BaseEngine {
             case INTEGER:
                 return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
             case VARCHAR:
-                return "VARCHAR " + getWithSizeOrDefault(column, "255");
+                return "VARCHAR " + getWithSizeOrDefault(column, 255);
             case CHAR:
-                return "CHAR " + getWithSizeOrDefault(column, "255");
+                return "CHAR " + getWithSizeOrDefault(column, 255);
             case UUID:
                 return "UUID";
         }

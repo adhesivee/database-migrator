@@ -84,12 +84,12 @@ public class Derby extends BaseEngine {
             case INTEGER:
                 return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)" : "");
             case VARCHAR:
-                return "VARCHAR" + getWithSizeOrDefault(column, "255");
+                return "VARCHAR" + getWithSizeOrDefault(column, 255);
             case CHAR:
-                return "CHAR" + getWithSizeOrDefault(column, "254");
+                return "CHAR" + getWithSizeOrDefault(column, 254);
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
-                return "CHAR " + getWithSizeOrDefault(column, "36");
+                return "CHAR " + getWithSizeOrDefault(column, 36);
         }
 
         throw new RuntimeException("Unknown type");
