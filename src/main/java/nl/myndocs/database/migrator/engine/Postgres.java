@@ -46,9 +46,9 @@ public class Postgres extends BaseEngine {
                 }
                 return "INTEGER";
             case VARCHAR:
-                return "VARCHAR " + getWithSizeIfPossible(column);
+                return "VARCHAR " + getWithSizeIfPresent(column);
             case CHAR:
-                return "CHAR " + getWithSizeIfPossible(column);
+                return "CHAR " + getWithSizeIfPresent(column);
             case UUID:
                 return "UUID";
         }

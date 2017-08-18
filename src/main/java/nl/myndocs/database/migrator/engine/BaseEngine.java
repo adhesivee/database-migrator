@@ -119,7 +119,7 @@ public abstract class BaseEngine implements Engine {
         return stringBuilder.toString();
     }
 
-    protected String getWithSizeIfPossible(Column column) {
+    protected String getWithSizeIfPresent(Column column) {
         if (column.getSize().isPresent()) {
             return "(" + column.getSize().get() + ")";
         }
