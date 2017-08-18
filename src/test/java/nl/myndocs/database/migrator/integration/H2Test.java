@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.database.query.PhraseTranslator;
-import nl.myndocs.database.migrator.database.query.translator.H2Translator;
+import nl.myndocs.database.migrator.database.query.translator.H2PhraseTranslator;
 
 import java.sql.Connection;
 
@@ -12,7 +12,7 @@ public class H2Test extends BaseIntegration {
 
     @Override
     protected PhraseTranslator phraseTranslator() {
-        return new H2Translator();
+        return new H2PhraseTranslator();
     }
 
     @Override

@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.database.query.PhraseTranslator;
-import nl.myndocs.database.migrator.database.query.translator.HyperSQLTranslator;
+import nl.myndocs.database.migrator.database.query.translator.HyperSQLPhraseTranslator;
 
 import java.sql.Connection;
 
@@ -12,7 +12,7 @@ public class HypersqlTest extends BaseIntegration {
 
     @Override
     protected PhraseTranslator phraseTranslator() {
-        return new HyperSQLTranslator();
+        return new HyperSQLPhraseTranslator();
     }
 
     public Connection getConnection() throws ClassNotFoundException {

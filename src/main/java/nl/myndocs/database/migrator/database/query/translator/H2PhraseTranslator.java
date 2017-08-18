@@ -5,7 +5,7 @@ import nl.myndocs.database.migrator.definition.Column;
 /**
  * Created by albert on 18-8-2017.
  */
-public class H2Translator extends DefaultPhraseTranslator {
+public class H2PhraseTranslator extends DefaultPhraseTranslator {
     @Override
     public String getNativeColumnDefinition(Column column) {
         Column.TYPE columnType = column.getType().get();

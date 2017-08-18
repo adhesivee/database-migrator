@@ -12,8 +12,8 @@ import java.util.function.Function;
 /**
  * Created by albert on 18-8-2017.
  */
-public class DerbyTranslator extends DefaultPhraseTranslator {
-    private static final Logger logger = LoggerFactory.getLogger(DerbyTranslator.class);
+public class DerbyPhraseTranslator extends DefaultPhraseTranslator {
+    private static final Logger logger = LoggerFactory.getLogger(DerbyPhraseTranslator.class);
 
     @Override
     public String[] translatePhrases(Query query, Phrase... phrases) {

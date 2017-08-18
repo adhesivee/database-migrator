@@ -9,7 +9,7 @@ import java.util.function.Function;
 /**
  * Created by albert on 18-8-2017.
  */
-public class PostgresTranslator extends DefaultPhraseTranslator {
+public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
     private static final Function<Query, String> ALTER_COLUMN_RENAME = query ->
             "RENAME " + query.getColumn().getColumnName() + " TO " + query.getColumn().getRename().get();
 

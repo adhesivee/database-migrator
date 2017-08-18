@@ -19,13 +19,13 @@ import java.util.function.Function;
 /**
  * Created by albert on 18-8-2017.
  */
-public class MySQLTranslator extends DefaultPhraseTranslator {
-    private static final Logger logger = LoggerFactory.getLogger(MySQLTranslator.class);
+public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
+    private static final Logger logger = LoggerFactory.getLogger(MySQLPhraseTranslator.class);
     private final Connection connection;
 
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
-    public MySQLTranslator(Connection connection) {
+    public MySQLPhraseTranslator(Connection connection) {
         super();
 
         this.connection = connection;
