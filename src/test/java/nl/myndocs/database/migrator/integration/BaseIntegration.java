@@ -88,6 +88,7 @@ public abstract class BaseIntegration {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            sqlException.printStackTrace();
             System.out.println("Re-attempt acquiring connection");
             return acquireConnection(connectionUri, username, password);
         }

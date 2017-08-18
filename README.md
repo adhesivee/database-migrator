@@ -10,6 +10,7 @@ This is only meant for simple database structures. It will not support database 
 ## Features
 ### Supported databases
 
+- Derby
 - H2
 - HyperSQL
 - MySQL

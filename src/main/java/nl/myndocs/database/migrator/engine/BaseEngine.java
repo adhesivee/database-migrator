@@ -47,6 +47,24 @@ public abstract class BaseEngine implements Engine {
     }
 
     @Override
+    public void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
+        Statement statement = connection.createStatement();
+
+        String alterTableQuery = String.format(
+                "ALTER TABLE %s %s COLUMN %s %s %s",
+                table.getTableName(),
+                getAlterColumnTerm(),
+                column.getColumnName(),
+                getAlterTypeTerm(),
+                getNativeColumnDefinition(column)
+        );
+        System.out.println(alterTableQuery);
+        statement.execute(alterTableQuery);
+
+        statement.close();
+    }
+
+    @Override
     public String getDropForeignKeyTerm() {
         return "CONSTRAINT";
     }

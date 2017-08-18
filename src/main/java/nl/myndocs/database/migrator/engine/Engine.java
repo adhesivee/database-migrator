@@ -19,6 +19,8 @@ public interface Engine {
     // @TODO: This should not be here, should be in the processor
     void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException;
 
+    void changeColumnType(Connection connection, Table table, Column column) throws SQLException;
+
     String getDropForeignKeyTerm();
 
     String getAlterColumnTerm();

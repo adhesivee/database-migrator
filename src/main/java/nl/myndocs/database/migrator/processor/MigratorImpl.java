@@ -21,58 +21,54 @@ public class MigratorImpl implements Migrator {
         this.engine = engine;
     }
 
-    public void migrate(Migration migration) {
-        try {
-            for (Table table : migration.getTables()) {
-                DatabaseMetaData metaData = connection.getMetaData();
-                ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
+    public void migrate(Migration migration) throws SQLException {
+        for (Table table : migration.getTables()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
 
-                boolean tableExists = false;
-                while (tables.next()) {
-                    if (table.getTableName().equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
-                        tableExists = true;
-                    }
+            boolean tableExists = false;
+            while (tables.next()) {
+                if (table.getTableName().equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                    tableExists = true;
                 }
-
-                Statement statement = connection.createStatement();
-
-                if (tableExists) {
-                    processAddingColumnsWithAlter(table);
-                } else {
-                    processAddingColumnsWithCreate(table);
-                }
-
-
-                processDropColumns(table);
-                processDropForeignKeys(table);
-                processAddingConstraints(table);
-                processDropConstraints(table);
-                processAddingForeignKeys(table);
-
-                statement.close();
-
-                for (Column column : table.getChangeColumns()) {
-                    if (column.getType().isPresent()) {
-                        changeColumnType(connection, table, column);
-                    }
-
-                    if (column.getDefaultValue().isPresent()) {
-                        engine.changeColumnDefault(connection, table, column);
-                    }
-                }
-
-                // Make sure renames always happens last
-                // Otherwise changeColumnType and changeColumnDefault will break
-                for (Column column : table.getChangeColumns()) {
-                    if (column.getRename().isPresent()) {
-                        engine.changeColumnName(connection, table, column);
-                    }
-                }
-
-
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+            Statement statement = connection.createStatement();
+
+            if (tableExists) {
+                processAddingColumnsWithAlter(table);
+            } else {
+                processAddingColumnsWithCreate(table);
+            }
+
+
+            processDropColumns(table);
+            processDropForeignKeys(table);
+            processAddingConstraints(table);
+            processDropConstraints(table);
+            processAddingForeignKeys(table);
+
+            statement.close();
+
+            for (Column column : table.getChangeColumns()) {
+                if (column.getType().isPresent()) {
+                    engine.changeColumnType(connection, table, column);
+                }
+
+                if (column.getDefaultValue().isPresent()) {
+                    engine.changeColumnDefault(connection, table, column);
+                }
+            }
+
+            // Make sure renames always happens last
+            // Otherwise changeColumnType and changeColumnDefault will break
+            for (Column column : table.getChangeColumns()) {
+                if (column.getRename().isPresent()) {
+                    engine.changeColumnName(connection, table, column);
+                }
+            }
+
+
         }
     }
 
@@ -88,23 +84,6 @@ public class MigratorImpl implements Migrator {
         }
 
         return (column.getDefaultValue().isPresent() ? "DEFAULT " + quote + column.getDefaultValue().get() + quote + "" : "");
-    }
-
-    protected void changeColumnType(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-
-        String alterTableQuery = String.format(
-                "ALTER TABLE %s %s COLUMN %s %s %s",
-                table.getTableName(),
-                engine.getAlterColumnTerm(),
-                column.getColumnName(),
-                engine.getAlterTypeTerm(),
-                engine.getNativeColumnDefinition(column)
-        );
-        System.out.println(alterTableQuery);
-        statement.execute(alterTableQuery);
-
-        statement.close();
     }
 
     protected String getNativeCascadeType(ForeignKey.CASCADE cascade) {
@@ -145,7 +124,7 @@ public class MigratorImpl implements Migrator {
             }
 
 
-            createTableQueryBuilder.append(");");
+            createTableQueryBuilder.append(")");
 
             System.out.println(createTableQueryBuilder.toString());
 

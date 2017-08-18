@@ -77,6 +77,13 @@
             <version>1.4.196</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>10.13.1.1</version>
+            <scope>test</scope>
+        </dependency>
+
 
         <!-- Logging (test) -->
         <dependency>
