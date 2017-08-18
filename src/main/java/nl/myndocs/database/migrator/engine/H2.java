@@ -1,6 +1,7 @@
 package nl.myndocs.database.migrator.engine;
 
-import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.engine.query.PhraseTranslator;
+import nl.myndocs.database.migrator.engine.query.translator.H2Translator;
 
 import java.sql.Connection;
 
@@ -14,19 +15,7 @@ public class H2 extends BaseEngine {
     }
 
     @Override
-    public String getNativeColumnDefinition(Column column) {
-        Column.TYPE columnType = column.getType().get();
-        switch (columnType) {
-            case INTEGER:
-                return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
-            case VARCHAR:
-                return "VARCHAR " + getWithSizeOrDefault(column, 255);
-            case CHAR:
-                return "CHAR " + getWithSizeOrDefault(column, 255);
-            case UUID:
-                return "UUID";
-        }
-
-        throw new RuntimeException("Unknown type");
+    protected PhraseTranslator phraseTranslator() {
+        return new H2Translator();
     }
 }

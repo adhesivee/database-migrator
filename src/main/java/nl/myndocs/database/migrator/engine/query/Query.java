@@ -10,6 +10,8 @@ import java.util.List;
 
 public class Query {
 
+
+    private final PhraseTranslator phraseTranslator;
     private Table table;
     private Column column;
     private Constraint constraint;
@@ -17,6 +19,15 @@ public class Query {
     private List<Phrase> phrases = new ArrayList<>();
     private String columnName;
     private String constraintName;
+
+    public Query(PhraseTranslator phraseTranslator) {
+        this.phraseTranslator = phraseTranslator;
+    }
+
+    // @TODO Probably should be removed
+    public Query newCleanInstance() {
+        return new Query(phraseTranslator);
+    }
 
     public Query query(Phrase... phrases) {
         this.phrases.clear();
@@ -119,5 +130,15 @@ public class Query {
 
     public String getConstraintName() {
         return constraintName;
+    }
+
+    public String[] getQueries() {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        List<Phrase> phrases = getPhrases();
+        return phraseTranslator.translatePhrases(
+                this,
+                phrases.toArray(new Phrase[phrases.size()])
+        );
     }
 }
