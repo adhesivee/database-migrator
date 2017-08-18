@@ -103,15 +103,11 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
     protected String getNativeCascadeType(ForeignKey.CASCADE cascade) {
         switch (cascade) {
             case RESTRICT:
-                return "RESTRICT";
             case SET_NULL:
-                return "SET NULL";
             case SET_DEFAULT:
-                return "SET DEFAULT";
             case NO_ACTION:
-                return "NO ACTION";
             case CASCADE:
-                return "CASCADE";
+                return cascade.name().replace("_", " ");
         }
         throw new RuntimeException("Unknown type");
     }
@@ -119,9 +115,8 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
     protected String getNativeConstraintType(Constraint.TYPE type) {
         switch (type) {
             case INDEX:
-                return "INDEX";
             case UNIQUE:
-                return "UNIQUE";
+                return type.name();
         }
 
         throw new RuntimeException("Could not process native constraint type");
@@ -130,7 +125,6 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
     protected String getNativeColumnDefinition(Column column) {
         return column.getType().get().name();
     }
-
 
     protected Function<Query, String> translatePhrase(Phrase phrase) {
         return phrasesMap.get(phrase);
