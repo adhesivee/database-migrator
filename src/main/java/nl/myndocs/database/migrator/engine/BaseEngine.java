@@ -5,13 +5,20 @@ import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
 import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.engine.query.Phrase;
+import nl.myndocs.database.migrator.engine.query.Query;
 import nl.myndocs.database.migrator.validator.TableValidator;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import static nl.myndocs.database.migrator.engine.query.Phrase.*;
 
 /**
  * Created by albert on 17-8-2017.
@@ -21,9 +28,27 @@ public abstract class BaseEngine implements Engine {
     private static final String ALTER_TABLE_ALTER_DEFAULT = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s";
 
     private final Connection connection;
+    private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
     public BaseEngine(Connection connection) {
         this.connection = connection;
+        phrasesMap.put(Phrase.ALTER_TABLE, query -> "ALTER TABLE " + query.getTable().getTableName());
+        phrasesMap.put(Phrase.ALTER_COLUMN, query -> "ALTER COLUMN " + query.getColumn().getColumnName());
+        phrasesMap.put(Phrase.SET_DEFAULT, query -> "SET DEFAULT '" + query.getColumn().getDefaultValue().get() + "'");
+        phrasesMap.put(Phrase.RENAME, query -> "RENAME TO " + query.getColumn().getRename().get());
+        phrasesMap.put(Phrase.TYPE, query -> getNativeColumnDefinition(query.getColumn()));
+        phrasesMap.put(Phrase.DROP_COLUMN, query -> "DROP COLUMN " + query.getColumnName());
+        phrasesMap.put(Phrase.DROP_FOREIGN_KEY, query -> "DROP CONSTRAINT " + query.getConstraintName());
+        phrasesMap.put(Phrase.DROP_CONSTRAINT, query -> "DROP CONSTRAINT " + query.getConstraintName());
+    }
+
+    protected String buildQuery(Query query, Function<Query, String>... queryBuilders) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Function<Query, String> queryBuilder : queryBuilders) {
+            stringBuilder.append(queryBuilder.apply(query) + " ");
+        }
+
+        return stringBuilder.toString();
     }
 
     protected String getWithSizeIfPossible(Column column) {
@@ -44,54 +69,56 @@ public abstract class BaseEngine implements Engine {
 
     @Override
     public void alterColumnDefault(Table table, Column column) {
-        try {
-            executeInStatement(
-                    String.format(
-                            ALTER_TABLE_ALTER_DEFAULT,
-                            table.getTableName(),
-                            column.getColumnName(),
-                            "'" + column.getDefaultValue().get() + "'"
+        Query query = new Query()
+                .query(ALTER_TABLE, ALTER_COLUMN, SET_DEFAULT)
+                .setTable(table)
+                .setColumn(column);
 
-                    )
-            );
+        executeQuery(query);
+
+    }
+
+    protected void executeQuery(Query query) {
+        try {
+            executeInStatement(getQueries(query));
         } catch (SQLException e) {
             throw new CouldNotProcessException(e);
         }
+    }
+
+    protected String[] getQueries(Query query) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        for (Phrase phrase : query.getPhrases()) {
+            stringBuilder.append(translatePhrase(phrase).apply(query) + " ");
+        }
+
+        System.out.println(stringBuilder.toString());
+
+        return new String[]{stringBuilder.toString()};
+    }
+
+    protected Function<Query, String> translatePhrase(Phrase phrase) {
+        return phrasesMap.get(phrase);
+    }
+
+    public void alterColumnName(Table table, Column column) {
+        Query query = new Query()
+                .query(ALTER_TABLE, ALTER_COLUMN, RENAME)
+                .setTable(table)
+                .setColumn(column);
+
+        executeQuery(query);
     }
 
     @Override
     public void alterColumnType(Table table, Column column) {
-        String alterTableQuery = String.format(
-                "ALTER TABLE %s %s COLUMN %s %s %s",
-                table.getTableName(),
-                getAlterColumnTerm(),
-                column.getColumnName(),
-                getAlterTypeTerm(),
-                getNativeColumnDefinition(column)
-        );
-        System.out.println(alterTableQuery);
+        Query query = new Query()
+                .query(ALTER_TABLE, ALTER_COLUMN, TYPE)
+                .setTable(table)
+                .setColumn(column);
 
-        try {
-            executeInStatement(alterTableQuery);
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
-    }
-
-    public String getDropForeignKeyTerm() {
-        return "CONSTRAINT";
-    }
-
-    public String getAlterColumnTerm() {
-        return "ALTER";
-    }
-
-    public String getAlterTypeTerm() {
-        return "";
-    }
-
-    public String getDropConstraintTerm() {
-        return "CONSTRAINT";
+        executeQuery(query);
     }
 
     protected String getNativeConstraintType(Constraint.TYPE type) {
@@ -108,6 +135,15 @@ public abstract class BaseEngine implements Engine {
     protected void executeInStatement(String query) throws SQLException {
         Statement statement = connection.createStatement();
         statement.execute(query);
+        statement.close();
+    }
+
+    protected void executeInStatement(String[] queries) throws SQLException {
+        Statement statement = connection.createStatement();
+        for (String query : queries) {
+            statement.execute(query);
+        }
+
         statement.close();
     }
 
@@ -201,33 +237,22 @@ public abstract class BaseEngine implements Engine {
 
     @Override
     public void dropColumn(Table table, String columnName) {
-        String dropColumnQuery = String.format(
-                "ALTER TABLE %s DROP COLUMN %s ",
-                table.getTableName(),
-                columnName
-        );
+        Query query = new Query()
+                .query(ALTER_TABLE, DROP_COLUMN)
+                .setTable(table)
+                .setColumnName(columnName);
 
-        try {
-            executeInStatement(dropColumnQuery);
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
+        executeQuery(query);
     }
 
     @Override
     public void dropForeignKey(Table table, String constraintName) {
-        String dropConstraintQuery = String.format(
-                "ALTER TABLE %s DROP %s %s",
-                table.getTableName(),
-                getDropForeignKeyTerm(),
-                constraintName
-        );
+        Query query = new Query()
+                .query(ALTER_TABLE, DROP_FOREIGN_KEY)
+                .setTable(table)
+                .setConstraintName(constraintName);
 
-        try {
-            executeInStatement(dropConstraintQuery);
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
+        executeQuery(query);
     }
 
     @Override
@@ -253,18 +278,12 @@ public abstract class BaseEngine implements Engine {
 
     @Override
     public void dropConstraint(Table table, String constraintName) {
-        String alterForeignKeyQuery = String.format(
-                "ALTER TABLE %s DROP %s %s",
-                table.getTableName(),
-                getDropConstraintTerm(),
-                constraintName
-        );
+        Query query = new Query()
+                .query(ALTER_TABLE, DROP_CONSTRAINT)
+                .setTable(table)
+                .setConstraintName(constraintName);
 
-        try {
-            executeInStatement(alterForeignKeyQuery);
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
-        }
+        executeQuery(query);
     }
 
     protected String getNativeCascadeType(ForeignKey.CASCADE cascade) {

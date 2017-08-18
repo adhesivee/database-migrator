@@ -3,12 +3,14 @@ package nl.myndocs.database.migrator.engine;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Table;
 import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.engine.query.Phrase;
+import nl.myndocs.database.migrator.engine.query.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.function.Function;
 
 public class Derby extends BaseEngine {
     private static final Logger logger = LoggerFactory.getLogger(Derby.class);
@@ -67,8 +69,12 @@ public class Derby extends BaseEngine {
     }
 
     @Override
-    public String getAlterTypeTerm() {
-        return "SET DATA TYPE";
+    protected Function<Query, String> translatePhrase(Phrase phrase) {
+        if (phrase.equals(Phrase.TYPE)) {
+            return query -> "SET DATA TYPE " + getNativeColumnDefinition(query.getColumn());
+        }
+
+        return super.translatePhrase(phrase);
     }
 
     @Override

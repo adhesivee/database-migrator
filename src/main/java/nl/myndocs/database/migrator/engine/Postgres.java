@@ -1,12 +1,11 @@
 package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Table;
-import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.engine.query.Phrase;
+import nl.myndocs.database.migrator.engine.query.Query;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.function.Function;
 
 /**
  * Created by albert on 13-8-2017.
@@ -17,19 +16,25 @@ public class Postgres extends BaseEngine {
         super(connection);
     }
 
+    private static final Function<Query, String> ALTER_COLUMN_RENAME = query ->
+            "RENAME " + query.getColumn().getColumnName() + " TO " + query.getColumn().getRename().get();
+
     @Override
-    public String getAlterTypeTerm() {
-        return "TYPE";
+    protected String[] getQueries(Query query) {
+        if (query.equals(Phrase.ALTER_TABLE, Phrase.ALTER_COLUMN, Phrase.RENAME)) {
+            return new String[]{translatePhrase(Phrase.ALTER_TABLE).apply(query) + " " + ALTER_COLUMN_RENAME.apply(query)};
+        }
+
+        return super.getQueries(query);
     }
 
-
     @Override
-    public void alterColumnName(Table table, Column column) {
-        try {
-            executeInStatement("ALTER TABLE " + table.getTableName() + " RENAME " + column.getColumnName() + " TO " + column.getRename().get());
-        } catch (SQLException e) {
-            throw new CouldNotProcessException(e);
+    protected Function<Query, String> translatePhrase(Phrase phrase) {
+        if (phrase.equals(Phrase.TYPE)) {
+            return query -> "TYPE " + getNativeColumnDefinition(query.getColumn());
         }
+
+        return super.translatePhrase(phrase);
     }
 
     public String getNativeColumnDefinition(Column column) {
