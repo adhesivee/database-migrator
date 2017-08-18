@@ -298,6 +298,7 @@ public abstract class BaseIntegration {
         statement.close();
         connection.close();
     }
+
     @Test
     public void testRenamingWithDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
@@ -378,13 +379,10 @@ public abstract class BaseIntegration {
     }
 
     protected Migrator getMigrator() {
-        try {
-            return new MigratorImpl(getConnection(), getEngine());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Could not execute");
-        }
+        return new MigratorImpl(getEngine());
     }
 
     protected abstract Engine getEngine();
+
     protected abstract Connection getConnection() throws ClassNotFoundException;
 }

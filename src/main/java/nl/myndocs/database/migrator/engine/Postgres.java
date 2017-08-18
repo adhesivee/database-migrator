@@ -2,6 +2,7 @@ package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Table;
+import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -12,6 +13,9 @@ import java.sql.Statement;
  */
 public class Postgres extends BaseEngine {
 
+    public Postgres(Connection connection) {
+        super(connection);
+    }
 
     @Override
     public String getAlterTypeTerm() {
@@ -20,10 +24,12 @@ public class Postgres extends BaseEngine {
 
 
     @Override
-    public void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute("ALTER TABLE " + table.getTableName() + " RENAME " + column.getColumnName() + " TO " + column.getRename().get());
-        statement.close();
+    public void alterColumnName(Table table, Column column) {
+        try {
+            executeInStatement("ALTER TABLE " + table.getTableName() + " RENAME " + column.getColumnName() + " TO " + column.getRename().get());
+        } catch (SQLException e) {
+            throw new CouldNotProcessException(e);
+        }
     }
 
     public String getNativeColumnDefinition(Column column) {

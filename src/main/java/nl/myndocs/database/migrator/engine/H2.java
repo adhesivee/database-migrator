@@ -2,6 +2,7 @@ package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Table;
+import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -12,11 +13,17 @@ import java.sql.Statement;
  */
 public class H2 extends BaseEngine {
 
+    public H2(Connection connection) {
+        super(connection);
+    }
+
     @Override
-    public void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute("ALTER TABLE " + table.getTableName() + " ALTER COLUMN " + column.getColumnName() + " RENAME TO " + column.getRename().get());
-        statement.close();
+    public void alterColumnName(Table table, Column column) {
+        try {
+            executeInStatement("ALTER TABLE " + table.getTableName() + " ALTER COLUMN " + column.getColumnName() + " RENAME TO " + column.getRename().get());
+        } catch (SQLException e) {
+            throw new CouldNotProcessException(e);
+        }
     }
 
     @Override

@@ -9,7 +9,11 @@ import java.sql.Connection;
 public class DerbyTest extends BaseIntegration {
     @Override
     protected Engine getEngine() {
-        return new Derby();
+        try {
+            return new Derby(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Connection getConnection() throws ClassNotFoundException {

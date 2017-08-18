@@ -1,7 +1,9 @@
 package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Table;
+import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +18,13 @@ import java.sql.Statement;
 public class MySQL extends BaseEngine {
     private static Logger logger = LoggerFactory.getLogger(MySQL.class);
     private static final String ALTER_TABLE_FORMAT = "ALTER TABLE %s CHANGE %s %s %s %s %s";
+
+    private final Connection connection;
+
+    public MySQL(Connection connection) {
+        super(connection);
+        this.connection = connection;
+    }
 
     @Override
     public String getAlterColumnTerm() {
@@ -33,10 +42,8 @@ public class MySQL extends BaseEngine {
     }
 
     @Override
-    public void changeColumnName(Connection connection, Table table, Column column) throws SQLException {
+    public void alterColumnName(Table table, Column column) {
         DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
-
-        Statement statement = connection.createStatement();
 
         String alterTableFormatted = String.format(
                 ALTER_TABLE_FORMAT,
@@ -48,13 +55,14 @@ public class MySQL extends BaseEngine {
                 databaseColumn.getNotNullValue()
         );
 
-        statement.execute(alterTableFormatted);
-        statement.close();
+        try {
+            executeInStatement(alterTableFormatted);
+        } catch (SQLException e) {
+            throw new CouldNotProcessException(e);
+        }
     }
 
-    public void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-
+    public void alterColumnDefault(Connection connection, Table table, Column column) {
         DatabaseColumn databaseColumn = loadDatabaseColumn(connection, table, column);
 
         String alterTableFormatted = String.format(
@@ -66,35 +74,42 @@ public class MySQL extends BaseEngine {
                 (column.getDefaultValue().isPresent() ? "DEFAULT '" + column.getDefaultValue().get() + "'" : ""),
                 databaseColumn.getNotNullValue()
         );
-        statement.execute(alterTableFormatted);
-        statement.close();
+        try {
+            executeInStatement(alterTableFormatted);
+        } catch (SQLException e) {
+            throw new CouldNotProcessException(e);
+        }
     }
 
-    private DatabaseColumn loadDatabaseColumn(Connection connection, Table table, Column column) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute("DESCRIBE " + table.getTableName());
+    private DatabaseColumn loadDatabaseColumn(Connection connection, Table table, Column column) {
+        try {
+            Statement statement = connection.createStatement();
+            statement.execute("DESCRIBE " + table.getTableName());
 
-        ResultSet resultSet = statement.getResultSet();
+            ResultSet resultSet = statement.getResultSet();
 
-        String notNullValue = "";
-        String columnType = "";
-        String columnDefault = "";
+            String notNullValue = "";
+            String columnType = "";
+            String columnDefault = "";
 
-        while (resultSet.next()) {
-            if (resultSet.getString("Field").equals(column.getColumnName())) {
-                if ("NO".equals(resultSet.getString("Null"))) {
-                    notNullValue = "NOT NULL";
+            while (resultSet.next()) {
+                if (resultSet.getString("Field").equals(column.getColumnName())) {
+                    if ("NO".equals(resultSet.getString("Null"))) {
+                        notNullValue = "NOT NULL";
+                    }
+
+                    columnType = resultSet.getString("Type");
+                    columnDefault = resultSet.getString("Default");
+
                 }
-
-                columnType = resultSet.getString("Type");
-                columnDefault = resultSet.getString("Default");
-
             }
+
+            statement.close();
+
+            return new DatabaseColumn(notNullValue, columnType, columnDefault);
+        } catch (SQLException sqlException) {
+            throw new CouldNotProcessException(sqlException);
         }
-
-        statement.close();
-
-        return new DatabaseColumn(notNullValue, columnType, columnDefault);
     }
 
     @Override

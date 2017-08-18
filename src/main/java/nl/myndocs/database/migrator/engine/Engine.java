@@ -1,31 +1,34 @@
 package nl.myndocs.database.migrator.engine;
 
 import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Constraint;
+import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
-
-import java.sql.Connection;
-import java.sql.SQLException;
+import nl.myndocs.database.migrator.validator.TableValidator;
 
 /**
  * Created by albert on 17-8-2017.
  */
 public interface Engine {
-    String getNativeColumnDefinition(Column column);
+    void alterColumnName(Table table, Column column);
 
+    void alterColumnDefault(Table table, Column column);
 
-    // @TODO: This should not be here, should be in the processor
-    void changeColumnName(Connection connection, Table table, Column column) throws SQLException;
+    void alterColumnType(Table table, Column column);
 
-    // @TODO: This should not be here, should be in the processor
-    void changeColumnDefault(Connection connection, Table table, Column column) throws SQLException;
+    void addColumnsWithCreateTable(Table table);
 
-    void changeColumnType(Connection connection, Table table, Column column) throws SQLException;
+    void addColumnsWithAlterTable(Table table);
 
-    String getDropForeignKeyTerm();
+    void addForeignKey(Table table, ForeignKey foreignKey);
 
-    String getAlterColumnTerm();
+    void dropForeignKey(Table table, String constraintName);
 
-    String getAlterTypeTerm();
+    void dropColumn(Table table, String columnName);
 
-    String getDropConstraintTerm();
+    void addConstraint(Table table, Constraint constraint);
+
+    void dropConstraint(Table table, String constraintName);
+
+    TableValidator getTableValidator();
 }
