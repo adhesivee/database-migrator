@@ -1,8 +1,8 @@
-package nl.myndocs.database.migrator.engine.query.translator;
+package nl.myndocs.database.migrator.database.query.translator;
 
+import nl.myndocs.database.migrator.database.query.Phrase;
+import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.engine.query.Phrase;
-import nl.myndocs.database.migrator.engine.query.Query;
 
 import java.util.function.Function;
 

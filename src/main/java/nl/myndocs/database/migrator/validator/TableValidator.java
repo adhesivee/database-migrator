@@ -1,6 +1,6 @@
 package nl.myndocs.database.migrator.validator;
 
-import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

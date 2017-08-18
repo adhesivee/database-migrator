@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.engine;
+package nl.myndocs.database.migrator.database;
 
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
@@ -9,7 +9,7 @@ import nl.myndocs.database.migrator.validator.TableValidator;
 /**
  * Created by albert on 17-8-2017.
  */
-public interface Engine {
+public interface DatabaseCommands {
     void alterColumnName(Table table, Column column);
 
     void alterColumnDefault(Table table, Column column);

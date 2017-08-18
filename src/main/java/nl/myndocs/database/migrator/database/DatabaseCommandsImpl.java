@@ -1,31 +1,33 @@
-package nl.myndocs.database.migrator.engine;
+package nl.myndocs.database.migrator.database;
 
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.database.query.PhraseTranslator;
+import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
-import nl.myndocs.database.migrator.engine.exception.CouldNotProcessException;
-import nl.myndocs.database.migrator.engine.query.PhraseTranslator;
-import nl.myndocs.database.migrator.engine.query.Query;
 import nl.myndocs.database.migrator.validator.TableValidator;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static nl.myndocs.database.migrator.engine.query.Phrase.*;
+import static nl.myndocs.database.migrator.database.query.Phrase.*;
 
 /**
  * Created by albert on 17-8-2017.
  */
-public abstract class BaseEngine implements Engine {
+public class DatabaseCommandsImpl implements DatabaseCommands {
 
     private static final String ALTER_TABLE_ALTER_DEFAULT = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s";
 
     private final Connection connection;
+    private final PhraseTranslator phraseTranslator;
 
-    public BaseEngine(Connection connection) {
+    public DatabaseCommandsImpl(Connection connection, PhraseTranslator phraseTranslator) {
         this.connection = connection;
+        this.phraseTranslator = phraseTranslator;
     }
 
     @Override
@@ -153,10 +155,8 @@ public abstract class BaseEngine implements Engine {
     }
 
     protected Query createQuery() {
-        return new Query(phraseTranslator());
+        return new Query(phraseTranslator);
     }
-
-    protected abstract PhraseTranslator phraseTranslator();
 
     @Override
     public TableValidator getTableValidator() {

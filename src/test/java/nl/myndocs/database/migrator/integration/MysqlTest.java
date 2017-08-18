@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.engine.Engine;
-import nl.myndocs.database.migrator.engine.MySQL;
+import nl.myndocs.database.migrator.database.query.PhraseTranslator;
+import nl.myndocs.database.migrator.database.query.translator.MySQLTranslator;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
 import org.jboss.arquillian.junit.Arquillian;
@@ -24,9 +24,9 @@ public class MysqlTest extends BaseIntegration {
 
 
     @Override
-    protected Engine getEngine() {
+    protected PhraseTranslator phraseTranslator() {
         try {
-            return new MySQL(getConnection());
+            return new MySQLTranslator(getConnection());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

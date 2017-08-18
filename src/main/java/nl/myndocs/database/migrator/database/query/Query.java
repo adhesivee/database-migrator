@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.engine.query;
+package nl.myndocs.database.migrator.database.query;
 
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;

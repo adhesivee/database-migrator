@@ -1,44 +1,46 @@
 package nl.myndocs.database.migrator.processor;
 
-import nl.myndocs.database.migrator.definition.*;
-import nl.myndocs.database.migrator.engine.Engine;
+import nl.myndocs.database.migrator.database.DatabaseCommands;
+import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Migration;
+import nl.myndocs.database.migrator.definition.Table;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 /**
  * Created by albert on 15-8-2017.
  */
 public class MigratorImpl implements Migrator {
     private static final String CREATE_FOREIGN_KEY_FORMAT = "FOREIGN KEY (%s) REFERENCES %s (%s)";
-    private final Engine engine;
+    private final DatabaseCommands databaseCommands;
 
-    public MigratorImpl(Engine engine) {
-        this.engine = engine;
+    public MigratorImpl(DatabaseCommands databaseCommands) {
+        this.databaseCommands = databaseCommands;
     }
 
     public void migrate(Migration migration) throws SQLException {
         for (Table table : migration.getTables()) {
 
-            if (engine.getTableValidator().tableExists(table.getTableName())) {
-                engine.addColumnsWithAlterTable(table);
+            if (databaseCommands.getTableValidator().tableExists(table.getTableName())) {
+                databaseCommands.addColumnsWithAlterTable(table);
             } else {
-                engine.addColumnsWithCreateTable(table);
+                databaseCommands.addColumnsWithCreateTable(table);
             }
 
-            table.getDropColumns().forEach(column -> engine.dropColumn(table, column));
-            table.getDropForeignKeys().forEach(constraintName -> engine.dropForeignKey(table, constraintName));
-            table.getNewConstraints().forEach(constraint -> engine.addConstraint(table, constraint));
-            table.getDropConstraints().forEach(constraintName -> engine.dropConstraint(table, constraintName));
-            table.getNewForeignKeys().forEach(foreignKey -> engine.addForeignKey(table, foreignKey));
+            table.getDropColumns().forEach(column -> databaseCommands.dropColumn(table, column));
+            table.getDropForeignKeys().forEach(constraintName -> databaseCommands.dropForeignKey(table, constraintName));
+            table.getNewConstraints().forEach(constraint -> databaseCommands.addConstraint(table, constraint));
+            table.getDropConstraints().forEach(constraintName -> databaseCommands.dropConstraint(table, constraintName));
+            table.getNewForeignKeys().forEach(foreignKey -> databaseCommands.addForeignKey(table, foreignKey));
 
 
             for (Column column : table.getChangeColumns()) {
                 if (column.getType().isPresent()) {
-                    engine.alterColumnType(table, column);
+                    databaseCommands.alterColumnType(table, column);
                 }
 
                 if (column.getDefaultValue().isPresent()) {
-                    engine.alterColumnDefault(table, column);
+                    databaseCommands.alterColumnDefault(table, column);
                 }
             }
 
@@ -46,7 +48,7 @@ public class MigratorImpl implements Migrator {
             // Otherwise alterColumnType and alterColumnDefault will break
             for (Column column : table.getChangeColumns()) {
                 if (column.getRename().isPresent()) {
-                    engine.alterColumnName(table, column);
+                    databaseCommands.alterColumnName(table, column);
                 }
             }
         }

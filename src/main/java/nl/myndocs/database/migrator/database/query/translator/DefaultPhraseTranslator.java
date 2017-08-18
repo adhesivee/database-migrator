@@ -1,12 +1,12 @@
-package nl.myndocs.database.migrator.engine.query.translator;
+package nl.myndocs.database.migrator.database.query.translator;
 
+import nl.myndocs.database.migrator.database.query.Phrase;
+import nl.myndocs.database.migrator.database.query.PhraseTranslator;
+import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
-import nl.myndocs.database.migrator.engine.query.Phrase;
-import nl.myndocs.database.migrator.engine.query.PhraseTranslator;
-import nl.myndocs.database.migrator.engine.query.Query;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static nl.myndocs.database.migrator.engine.query.Phrase.ADD_COLUMN;
+import static nl.myndocs.database.migrator.database.query.Phrase.ADD_COLUMN;
 
 /**
  * Created by albert on 18-8-2017.

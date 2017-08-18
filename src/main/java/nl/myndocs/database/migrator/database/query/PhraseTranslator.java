@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.engine.query;
+package nl.myndocs.database.migrator.database.query;
 
 /**
  * Created by albert on 18-8-2017.

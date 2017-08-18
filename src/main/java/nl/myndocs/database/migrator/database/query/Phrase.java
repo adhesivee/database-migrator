@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.engine.query;
+package nl.myndocs.database.migrator.database.query;
 
 public enum Phrase {
     CREATE_TABLE,

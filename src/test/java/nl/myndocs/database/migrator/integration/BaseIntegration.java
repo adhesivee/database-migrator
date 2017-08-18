@@ -1,10 +1,11 @@
 package nl.myndocs.database.migrator.integration;
 
+import nl.myndocs.database.migrator.database.DatabaseCommandsImpl;
+import nl.myndocs.database.migrator.database.query.PhraseTranslator;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
-import nl.myndocs.database.migrator.engine.Engine;
 import nl.myndocs.database.migrator.processor.Migrator;
 import nl.myndocs.database.migrator.processor.MigratorImpl;
 import org.junit.Test;
@@ -379,10 +380,19 @@ public abstract class BaseIntegration {
     }
 
     protected Migrator getMigrator() {
-        return new MigratorImpl(getEngine());
+        try {
+            return new MigratorImpl(
+                    new DatabaseCommandsImpl(
+                            getConnection(),
+                            phraseTranslator()
+                    )
+            );
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    protected abstract Engine getEngine();
+    protected abstract PhraseTranslator phraseTranslator();
 
     protected abstract Connection getConnection() throws ClassNotFoundException;
 }
