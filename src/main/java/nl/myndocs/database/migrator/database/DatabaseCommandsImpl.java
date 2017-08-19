@@ -159,6 +159,11 @@ public class DatabaseCommandsImpl implements DatabaseCommands {
     }
 
     @Override
+    public Connection getConnection() {
+        return connection;
+    }
+
+    @Override
     public TableValidator getTableValidator() {
         return new TableValidator(connection);
     }

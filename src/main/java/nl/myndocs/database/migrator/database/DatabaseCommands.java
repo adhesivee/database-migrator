@@ -6,6 +6,8 @@ import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
 import nl.myndocs.database.migrator.validator.TableValidator;
 
+import java.sql.Connection;
+
 /**
  * Created by albert on 17-8-2017.
  */
@@ -31,4 +33,6 @@ public interface DatabaseCommands {
     void dropConstraint(Table table, String constraintName);
 
     TableValidator getTableValidator();
+
+    Connection getConnection();
 }

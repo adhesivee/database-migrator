@@ -35,7 +35,7 @@ This is only meant for simple database structures. It will not support database 
 
 ### Create table
 ```java
-Migration.Builder builder = new Migration.Builder();
+Migration.Builder builder = new Migration.Builder("migration-id");
 
 builder.table("some_table")
     .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -44,7 +44,7 @@ builder.table("some_table")
 
 ### Create table with foreign keys
 ```java
-Migration.Builder builder = new Migration.Builder();
+Migration.Builder builder = new Migration.Builder("migration-id");
 
 builder.table("some_other_table")
     .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -57,7 +57,7 @@ builder.table("some_other_table")
 
 ### Rename column
 ```java
-Migration.Builder builder = new Migration.Builder();
+Migration.Builder builder = new Migration.Builder("migration-id");
 
 builder.table("some_table")
     .changeColumn("name", column -> column.rename("renamed"));
@@ -65,7 +65,7 @@ builder.table("some_table")
 
 ### Change column type
 ```java
-Migration.Builder builder = new Migration.Builder();
+Migration.Builder builder = new Migration.Builder("migration-id");
 
 builder.table("some_table")
     .changeColumn("name", column -> column.type(Column.TYPE.VARCHAR));
@@ -73,7 +73,7 @@ builder.table("some_table")
 
 ### Column type size
 ```java
-Migration.Builder builder = new Migration.Builder();
+Migration.Builder builder = new Migration.Builder("migration-id");
 
 builder.table("some_table")
     .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(25));

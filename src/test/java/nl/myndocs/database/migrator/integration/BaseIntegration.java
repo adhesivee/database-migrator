@@ -8,6 +8,8 @@ import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.processor.Migrator;
 import nl.myndocs.database.migrator.processor.MigratorImpl;
+import nl.myndocs.database.migrator.validator.TableValidator;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
@@ -18,6 +20,21 @@ import static org.junit.Assert.*;
  * Created by albert on 14-8-2017.
  */
 public abstract class BaseIntegration {
+
+    @Before
+    public void dropChangelog() throws ClassNotFoundException, SQLException {
+        Connection connection = getConnection();
+        Statement statement = connection.createStatement();
+
+        TableValidator tableValidator = new TableValidator(connection);
+
+        if (tableValidator.tableExists("migration_changelog")) {
+            statement.execute("DROP TABLE migration_changelog");
+        }
+
+        statement.close();
+        getConnection().close();
+    }
     @Test
     public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
         Connection connection = getConnection();
@@ -48,7 +65,7 @@ public abstract class BaseIntegration {
     }
 
     public Migration buildMigration() {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -98,7 +115,7 @@ public abstract class BaseIntegration {
     // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
     @Test(expected = Exception.class)
     public void testForeignKeyConstraint() throws Exception {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_foreign_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -123,7 +140,7 @@ public abstract class BaseIntegration {
 
     @Test
     public void testRemoveForeignKeyConstraint() throws Exception {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_foreign_drop_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -141,7 +158,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("some_foreign_drop_other_table")
                 .dropForeignKey("some_foreign_drop_FK");
@@ -157,7 +174,7 @@ public abstract class BaseIntegration {
 
     @Test
     public void testAddUniqueConstraint() throws ClassNotFoundException, SQLException {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_add_unique_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -173,7 +190,7 @@ public abstract class BaseIntegration {
         statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
         statement.execute("TRUNCATE TABLE some_add_unique_table");
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("some_add_unique_table")
                 .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name");
@@ -196,7 +213,7 @@ public abstract class BaseIntegration {
 
     @Test
     public void testDropUniqueConstraint() throws Exception {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_add_and_drop_unique_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -207,7 +224,7 @@ public abstract class BaseIntegration {
         );
 
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("some_add_and_drop_unique_table")
                 .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name");
@@ -216,7 +233,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-3");
 
         builder.table("some_add_and_drop_unique_table")
                 .dropConstraint("unique_add_and_drop_constraint_name");
@@ -236,7 +253,7 @@ public abstract class BaseIntegration {
 
     @Test
     public void testAddingNewColumnsToExistingTable() throws ClassNotFoundException, SQLException {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_appending_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -246,7 +263,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("some_appending_table")
                 .addColumn("some_table_id", Column.TYPE.INTEGER);
@@ -259,7 +276,7 @@ public abstract class BaseIntegration {
 
     @Test
     public void testDroppedColumn() throws ClassNotFoundException, SQLException {
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("some_dropped_column_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -270,7 +287,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("some_dropped_column_table")
                 .dropColumn("some_table_id");
@@ -305,7 +322,7 @@ public abstract class BaseIntegration {
         Connection connection = getConnection();
         Migrator migrator = getMigrator();
 
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("test_rename_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -317,7 +334,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("test_rename_table")
                 .changeColumn("name", column -> column.rename("renamed"));
@@ -344,7 +361,7 @@ public abstract class BaseIntegration {
     public void testChangingDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
         Migrator migrator = getMigrator();
-        Migration.Builder builder = new Migration.Builder();
+        Migration.Builder builder = new Migration.Builder("migration-1");
 
         builder.table("test_change_default_table")
                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
@@ -356,7 +373,7 @@ public abstract class BaseIntegration {
                 builder.build()
         );
 
-        builder = new Migration.Builder();
+        builder = new Migration.Builder("migration-2");
 
         builder.table("test_change_default_table")
                 .changeColumn("name", column -> column.defaultValue("changed-value"));
