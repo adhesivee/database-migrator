@@ -48,6 +48,21 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
     }
 
     @Override
+    public void setDefault(String defaultValue) {
+        // @TODO Should be quoted properly
+        String queryFormat = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT '%s'";
+
+        executeInStatement(
+                String.format(
+                        queryFormat,
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        defaultValue
+                )
+        );
+    }
+
+    @Override
     public void createTable(String tableName, Collection<ColumnOptions> columnOptions) {
         Collection<String> columnQueries = new ArrayList<>();
         for (ColumnOptions columnOption : columnOptions) {

@@ -8,4 +8,6 @@ import nl.myndocs.database.migrator.definition.Column;
  */
 public interface AlterColumn {
     void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions);
+
+    void setDefault(String defaultValue);
 }

@@ -88,7 +88,9 @@ public class Migrator {
                     }
 
                     if (column.getDefaultValue().isPresent()) {
-                        databaseCommands.alterColumnDefault(table, column);
+                        database.alterTable(table.getTableName())
+                                .alterColumn(column.getColumnName())
+                                .setDefault(column.getDefaultValue().get());
                     }
                 }
 
