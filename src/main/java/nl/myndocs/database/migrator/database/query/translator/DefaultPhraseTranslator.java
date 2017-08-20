@@ -3,6 +3,7 @@ package nl.myndocs.database.migrator.database.query.translator;
 import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.database.query.*;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
+import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
@@ -11,10 +12,7 @@ import nl.myndocs.database.migrator.definition.Table;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -47,6 +45,34 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
     public AlterColumn alterColumn(String columnName) {
         alterColumnName = columnName;
         return this;
+    }
+
+    @Override
+    public void createTable(String tableName, Collection<ColumnOptions> columnOptions) {
+        Collection<String> columnQueries = new ArrayList<>();
+        for (ColumnOptions columnOption : columnOptions) {
+            columnQueries.add(columnOption.getColumnName() + " " +
+                    getNativeColumnDefinition(
+                            columnOption.getColumnType(),
+                            new ChangeTypeOptions(
+                                    columnOption.getAutoIncrement(),
+                                    columnOption.getColumnSize()
+                            )
+                    ) + " " +
+                    (columnOption.getDefaultValue().isPresent() ? getDefaultValue(columnOption.getColumnType(), columnOption.getDefaultValue().get()) : "") + " " +
+                    (columnOption.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                    (columnOption.getIsPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
+            );
+        }
+
+
+        executeInStatement(
+                String.format(
+                        "CREATE TABLE %s (%s)",
+                        tableName,
+                        String.join(",", columnQueries)
+                )
+        );
     }
 
     @Override
@@ -149,7 +175,7 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
                             column.getType().get(),
                             new ChangeTypeOptions(column.getAutoIncrement(), column.getSize())
                     ) + " " +
-                    getDefaultValue(column) + " " +
+                    (column.getDefaultValue().isPresent() ? getDefaultValue(column.getType().get(), column.getDefaultValue().get()) : "") + " " +
                     (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
                     (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " ";
         });
@@ -207,18 +233,18 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         return new String[]{stringBuilder.toString()};
     }
 
-    protected String getDefaultValue(Column column) {
+    protected String getDefaultValue(Column.TYPE columnType, String defaultValue) {
         String quote = "";
 
         List<Column.TYPE> quotedTypes = Arrays.asList(
                 Column.TYPE.CHAR,
                 Column.TYPE.VARCHAR
         );
-        if (quotedTypes.contains(column.getType().get())) {
+        if (quotedTypes.contains(columnType)) {
             quote = "'";
         }
 
-        return (column.getDefaultValue().isPresent() ? "DEFAULT " + quote + column.getDefaultValue().get() + quote + "" : "");
+        return "DEFAULT " + quote + defaultValue + quote;
     }
 
     protected String buildQuery(Query query, Function<Query, String>... queryBuilders) {

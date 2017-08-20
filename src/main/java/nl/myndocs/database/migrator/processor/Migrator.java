@@ -4,6 +4,7 @@ import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.DatabaseCommands;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
+import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Migration;
@@ -13,6 +14,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by albert on 15-8-2017.
@@ -61,7 +64,7 @@ public class Migrator {
                 if (databaseCommands.getTableValidator().tableExists(table.getTableName())) {
                     databaseCommands.addColumnsWithAlterTable(table);
                 } else {
-                    databaseCommands.addColumnsWithCreateTable(table);
+                    database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
                 }
 
                 table.getDropColumns().forEach(column -> databaseCommands.dropColumn(table, column));
@@ -102,5 +105,25 @@ public class Migrator {
             insertPreparedStatement.setString(1, migration.getMigrationId());
             insertPreparedStatement.execute();
         }
+    }
+
+    private Collection<ColumnOptions> getColumnOptionsFromNewColumns(Table table) {
+        Collection<ColumnOptions> columnOptions = new ArrayList<>();
+
+        for (Column column : table.getNewColumns()) {
+            columnOptions.add(
+                    new ColumnOptions(
+                            column.getColumnName(),
+                            column.getType().get(),
+                            column.getAutoIncrement(),
+                            column.getSize(),
+                            column.getDefaultValue(),
+                            column.getIsNotNull(),
+                            column.getPrimary()
+                    )
+            );
+        }
+
+        return columnOptions;
     }
 }
