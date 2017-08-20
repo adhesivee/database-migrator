@@ -3,7 +3,7 @@ package nl.myndocs.database.migrator.database.query.translator;
 import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.database.query.Phrase;
 import nl.myndocs.database.migrator.database.query.Query;
-import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Table;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
-    public void changeType(Column.TYPE type, AlterColumnOptions alterColumnOptions) {
+    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
         String alterTypeFormat = "ALTER TABLE %s MODIFY COLUMN %s %s";
 
         executeInStatement(
@@ -44,7 +44,7 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
                         alterTypeFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        getNativeColumnDefinition(type, AlterColumnOptions.empty())
+                        getNativeColumnDefinition(type, ChangeTypeOptions.empty())
                 )
         );
     }
@@ -128,10 +128,10 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                return getNativeColumnDefinition(columnType, AlterColumnOptions.empty());
+                return getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
             case VARCHAR:
             case CHAR:
-                return getNativeColumnDefinition(columnType, AlterColumnOptions.ofSize(255));
+                return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
         }
 
 
@@ -139,16 +139,16 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
-    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (alterColumnOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
+                return "INTEGER " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
-                return getNativeColumnDefinition(Column.TYPE.CHAR, AlterColumnOptions.ofSize(36));
+                return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));
         }
 
-        return super.getNativeColumnDefinition(columnType, alterColumnOptions);
+        return super.getNativeColumnDefinition(columnType, changeTypeOptions);
     }
 
     private static class DatabaseColumn {

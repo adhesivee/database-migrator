@@ -5,16 +5,16 @@ import java.util.Optional;
 /**
  * Created by albert on 20-8-2017.
  */
-public class AlterColumnOptions {
+public class ChangeTypeOptions {
     private final Optional<Boolean> autoIncrement;
     private final Optional<Integer> columnSize;
 
-    public AlterColumnOptions(Boolean autoIncrement, Integer columnSize) {
+    public ChangeTypeOptions(Boolean autoIncrement, Integer columnSize) {
         this.autoIncrement = Optional.ofNullable(autoIncrement);
         this.columnSize = Optional.ofNullable(columnSize);
     }
 
-    public AlterColumnOptions(Optional<Boolean> autoIncrement, Optional<Integer> columnSize) {
+    public ChangeTypeOptions(Optional<Boolean> autoIncrement, Optional<Integer> columnSize) {
         if (autoIncrement == null) {
             throw new IllegalArgumentException("autoIncrement should not be null");
         }
@@ -34,11 +34,11 @@ public class AlterColumnOptions {
         return columnSize;
     }
 
-    public static AlterColumnOptions ofSize(int size) {
-        return new AlterColumnOptions(null, size);
+    public static ChangeTypeOptions ofSize(int size) {
+        return new ChangeTypeOptions(null, size);
     }
 
-    public static AlterColumnOptions empty() {
-        return new AlterColumnOptions((Boolean) null, null);
+    public static ChangeTypeOptions empty() {
+        return new ChangeTypeOptions((Boolean) null, null);
     }
 }

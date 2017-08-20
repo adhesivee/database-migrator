@@ -2,7 +2,7 @@ package nl.myndocs.database.migrator.database.query.translator;
 
 import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.database.query.*;
-import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
@@ -50,14 +50,14 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
     }
 
     @Override
-    public void changeType(Column.TYPE type, AlterColumnOptions alterColumnOptions) {
+    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
         String alterColumnFormat = "ALTER TABLE %s ALTER COLUMN %s %s";
 
         String alterQuery = String.format(
                 alterColumnFormat,
                 alterTableName,
                 alterColumnName,
-                getNativeColumnDefinition(type, alterColumnOptions)
+                getNativeColumnDefinition(type, changeTypeOptions)
         );
 
         System.out.println(alterQuery);
@@ -77,7 +77,7 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
 
                     return getNativeColumnDefinition(
                             column.getType().get(),
-                            new AlterColumnOptions(column.getAutoIncrement(), column.getSize())
+                            new ChangeTypeOptions(column.getAutoIncrement(), column.getSize())
                     );
                 }
         );
@@ -147,7 +147,7 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
                     column.getColumnName() + " " +
                     getNativeColumnDefinition(
                             column.getType().get(),
-                            new AlterColumnOptions(column.getAutoIncrement(), column.getSize())
+                            new ChangeTypeOptions(column.getAutoIncrement(), column.getSize())
                     ) + " " +
                     getDefaultValue(column) + " " +
                     (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
@@ -181,12 +181,12 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         return columnType.name();
     }
 
-    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
-        if (!alterColumnOptions.getColumnSize().isPresent()) {
+    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
+        if (!changeTypeOptions.getColumnSize().isPresent()) {
             return getNativeColumnDefinition(columnType);
         }
 
-        return columnType.name() + "(" + alterColumnOptions.getColumnSize().get() + ")";
+        return columnType.name() + "(" + changeTypeOptions.getColumnSize().get() + ")";
     }
 
     protected Function<Query, String> translatePhrase(Phrase phrase) {

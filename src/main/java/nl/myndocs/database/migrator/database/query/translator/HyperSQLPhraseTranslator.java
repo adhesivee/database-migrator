@@ -1,6 +1,6 @@
 package nl.myndocs.database.migrator.database.query.translator;
 
-import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 
 import java.sql.Connection;
@@ -19,23 +19,23 @@ public class HyperSQLPhraseTranslator extends DefaultPhraseTranslator {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                getNativeColumnDefinition(columnType, AlterColumnOptions.empty());
+                getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
             case VARCHAR:
             case CHAR:
-                return getNativeColumnDefinition(columnType, AlterColumnOptions.ofSize(255));
+                return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
         }
 
         return super.getNativeColumnDefinition(columnType);
     }
 
     @Override
-    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (alterColumnOptions.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
+                return "INTEGER " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
             case UUID:
                 return "UUID";
         }
-        return super.getNativeColumnDefinition(columnType, alterColumnOptions);
+        return super.getNativeColumnDefinition(columnType, changeTypeOptions);
     }
 }

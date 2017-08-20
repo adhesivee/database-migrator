@@ -2,7 +2,7 @@ package nl.myndocs.database.migrator.database.query.translator;
 
 import nl.myndocs.database.migrator.database.query.Phrase;
 import nl.myndocs.database.migrator.database.query.Query;
-import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 
 import java.sql.Connection;
@@ -20,7 +20,7 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
-    public void changeType(Column.TYPE type, AlterColumnOptions alterColumnOptions) {
+    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
         String alterTypeFormat = "ALTER TABLE %s ALTER COLUMN %s TYPE %s";
 
         executeInStatement(
@@ -28,7 +28,7 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
                         alterTypeFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        getNativeColumnDefinition(type, AlterColumnOptions.empty())
+                        getNativeColumnDefinition(type, ChangeTypeOptions.empty())
                 )
         );
     }
@@ -56,23 +56,23 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                getNativeColumnDefinition(columnType, AlterColumnOptions.empty());
+                getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
         }
 
         return super.getNativeColumnDefinition(columnType);
     }
 
     @Override
-    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
             case INTEGER:
-                if (alterColumnOptions.getAutoIncrement().orElse(false)) {
+                if (changeTypeOptions.getAutoIncrement().orElse(false)) {
                     return "SERIAL";
                 }
                 return "INTEGER";
             case UUID:
                 return "UUID";
         }
-        return super.getNativeColumnDefinition(columnType, alterColumnOptions);
+        return super.getNativeColumnDefinition(columnType, changeTypeOptions);
     }
 }

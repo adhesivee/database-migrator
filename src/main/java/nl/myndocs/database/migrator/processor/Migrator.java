@@ -3,7 +3,7 @@ package nl.myndocs.database.migrator.processor;
 import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.DatabaseCommands;
 import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Migration;
@@ -77,7 +77,7 @@ public class Migrator {
                                 .alterColumn(column.getColumnName())
                                 .changeType(
                                         column.getType().get(),
-                                        new AlterColumnOptions(
+                                        new ChangeTypeOptions(
                                                 column.getAutoIncrement(),
                                                 column.getSize()
                                         )
