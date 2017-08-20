@@ -2,6 +2,8 @@ package nl.myndocs.database.migrator.processor;
 
 import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.DatabaseCommands;
+import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Migration;
@@ -19,9 +21,11 @@ public class Migrator {
     private static final String CHANGE_LOG_TABLE = "migration_changelog";
 
     private final DatabaseCommands databaseCommands;
+    private final Database database;
 
-    public Migrator(DatabaseCommands databaseCommands) {
+    public Migrator(DatabaseCommands databaseCommands, Database database) {
         this.databaseCommands = databaseCommands;
+        this.database = database;
     }
 
     public void migrate(MigrationScript... migrationScripts) throws SQLException {
@@ -69,7 +73,15 @@ public class Migrator {
 
                 for (Column column : table.getChangeColumns()) {
                     if (column.getType().isPresent()) {
-                        databaseCommands.alterColumnType(table, column);
+                        database.alterTable(table.getTableName())
+                                .alterColumn(column.getColumnName())
+                                .changeType(
+                                        column.getType().get(),
+                                        new AlterColumnOptions(
+                                                column.getAutoIncrement(),
+                                                column.getSize()
+                                        )
+                                );
                     }
 
                     if (column.getDefaultValue().isPresent()) {

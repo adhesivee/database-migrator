@@ -1,25 +1,41 @@
 package nl.myndocs.database.migrator.database.query.translator;
 
+import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
+
+import java.sql.Connection;
 
 /**
  * Created by albert on 18-8-2017.
  */
 public class HyperSQLPhraseTranslator extends DefaultPhraseTranslator {
+
+    public HyperSQLPhraseTranslator(Connection connection) {
+        super(connection);
+    }
+
     @Override
-    public String getNativeColumnDefinition(Column column) {
-        Column.TYPE columnType = column.getType().get();
+    protected String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
             case INTEGER:
-                return "INTEGER " + (column.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
+            case UUID:
+                getNativeColumnDefinition(columnType, AlterColumnOptions.empty());
             case VARCHAR:
-                return "VARCHAR " + getWithSizeOrDefault(column, 255);
             case CHAR:
-                return "CHAR " + getWithSizeOrDefault(column, 255);
+                return getNativeColumnDefinition(columnType, AlterColumnOptions.ofSize(255));
+        }
+
+        return super.getNativeColumnDefinition(columnType);
+    }
+
+    @Override
+    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+        switch (columnType) {
+            case INTEGER:
+                return "INTEGER " + (alterColumnOptions.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
             case UUID:
                 return "UUID";
         }
-
-        throw new RuntimeException("Unknown type");
+        return super.getNativeColumnDefinition(columnType, alterColumnOptions);
     }
 }

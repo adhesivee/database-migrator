@@ -2,8 +2,10 @@ package nl.myndocs.database.migrator.database.query.translator;
 
 import nl.myndocs.database.migrator.database.query.Phrase;
 import nl.myndocs.database.migrator.database.query.Query;
+import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
 
+import java.sql.Connection;
 import java.util.function.Function;
 
 /**
@@ -13,10 +15,28 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
     private static final Function<Query, String> ALTER_COLUMN_RENAME = query ->
             "RENAME " + query.getColumn().getColumnName() + " TO " + query.getColumn().getRename().get();
 
+    public PostgresPhraseTranslator(Connection connection) {
+        super(connection);
+    }
+
+    @Override
+    public void changeType(Column.TYPE type, AlterColumnOptions alterColumnOptions) {
+        String alterTypeFormat = "ALTER TABLE %s ALTER COLUMN %s TYPE %s";
+
+        executeInStatement(
+                String.format(
+                        alterTypeFormat,
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        getNativeColumnDefinition(type, AlterColumnOptions.empty())
+                )
+        );
+    }
+
     @Override
     protected Function<Query, String> translatePhrase(Phrase phrase) {
         if (phrase.equals(Phrase.TYPE)) {
-            return query -> "TYPE " + getNativeColumnDefinition(query.getColumn());
+            return query -> "TYPE " + getNativeColumnDefinition(query.getColumn().getType().get());
         }
 
         return super.translatePhrase(phrase);
@@ -31,22 +51,28 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
         return super.translatePhrases(query, phrases);
     }
 
-    public String getNativeColumnDefinition(Column column) {
-        Column.TYPE columnType = column.getType().get();
+    @Override
+    protected String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
             case INTEGER:
-                if (column.getAutoIncrement().orElse(false)) {
+            case UUID:
+                getNativeColumnDefinition(columnType, AlterColumnOptions.empty());
+        }
+
+        return super.getNativeColumnDefinition(columnType);
+    }
+
+    @Override
+    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+        switch (columnType) {
+            case INTEGER:
+                if (alterColumnOptions.getAutoIncrement().orElse(false)) {
                     return "SERIAL";
                 }
                 return "INTEGER";
-            case VARCHAR:
-                return "VARCHAR " + getWithSizeIfPresent(column);
-            case CHAR:
-                return "CHAR " + getWithSizeIfPresent(column);
             case UUID:
                 return "UUID";
         }
-
-        throw new RuntimeException("Unknown type");
+        return super.getNativeColumnDefinition(columnType, alterColumnOptions);
     }
 }

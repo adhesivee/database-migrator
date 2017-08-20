@@ -1,13 +1,16 @@
 package nl.myndocs.database.migrator.database.query.translator;
 
-import nl.myndocs.database.migrator.database.query.Phrase;
-import nl.myndocs.database.migrator.database.query.PhraseTranslator;
-import nl.myndocs.database.migrator.database.query.Query;
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.database.query.*;
+import nl.myndocs.database.migrator.database.query.option.AlterColumnOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -20,15 +23,64 @@ import static nl.myndocs.database.migrator.database.query.Phrase.ADD_COLUMN;
 /**
  * Created by albert on 18-8-2017.
  */
-public class DefaultPhraseTranslator implements PhraseTranslator {
+public class DefaultPhraseTranslator implements PhraseTranslator, Database, AlterTable, AlterColumn {
+
+    private final Connection connection;
+    private String alterTableName;
+    private String alterColumnName;
+
+    protected String getAlterTableName() {
+        return alterTableName;
+    }
+
+    protected String getAlterColumnName() {
+        return alterColumnName;
+    }
+
+    @Override
+    public AlterTable alterTable(String tableName) {
+        alterTableName = tableName;
+        return this;
+    }
+
+    @Override
+    public AlterColumn alterColumn(String columnName) {
+        alterColumnName = columnName;
+        return this;
+    }
+
+    @Override
+    public void changeType(Column.TYPE type, AlterColumnOptions alterColumnOptions) {
+        String alterColumnFormat = "ALTER TABLE %s ALTER COLUMN %s %s";
+
+        String alterQuery = String.format(
+                alterColumnFormat,
+                alterTableName,
+                alterColumnName,
+                getNativeColumnDefinition(type, alterColumnOptions)
+        );
+
+        System.out.println(alterQuery);
+        executeInStatement(alterQuery);
+    }
+
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
-    public DefaultPhraseTranslator() {
+    public DefaultPhraseTranslator(Connection connection) {
+        this.connection = connection;
         phrasesMap.put(Phrase.ALTER_TABLE, query -> "ALTER TABLE " + query.getTable().getTableName());
         phrasesMap.put(Phrase.ALTER_COLUMN, query -> "ALTER COLUMN " + query.getColumn().getColumnName());
         phrasesMap.put(Phrase.SET_DEFAULT, query -> "SET DEFAULT '" + query.getColumn().getDefaultValue().get() + "'");
         phrasesMap.put(Phrase.RENAME, query -> "RENAME TO " + query.getColumn().getRename().get());
-        phrasesMap.put(Phrase.TYPE, query -> getNativeColumnDefinition(query.getColumn()));
+        phrasesMap.put(Phrase.TYPE, query -> {
+                    Column column = query.getColumn();
+
+                    return getNativeColumnDefinition(
+                            column.getType().get(),
+                            new AlterColumnOptions(column.getAutoIncrement(), column.getSize())
+                    );
+                }
+        );
         phrasesMap.put(Phrase.DROP_COLUMN, query -> "DROP COLUMN " + query.getColumnName());
         phrasesMap.put(Phrase.DROP_FOREIGN_KEY, query -> "DROP CONSTRAINT " + query.getConstraintName());
         phrasesMap.put(Phrase.DROP_CONSTRAINT, query -> "DROP CONSTRAINT " + query.getConstraintName());
@@ -93,7 +145,10 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
 
             return (isAlterTable ? "ADD COLUMN " : "") +
                     column.getColumnName() + " " +
-                    getNativeColumnDefinition(column) + " " +
+                    getNativeColumnDefinition(
+                            column.getType().get(),
+                            new AlterColumnOptions(column.getAutoIncrement(), column.getSize())
+                    ) + " " +
                     getDefaultValue(column) + " " +
                     (column.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
                     (column.getPrimary().orElse(false) ? "PRIMARY KEY" : "") + " ";
@@ -122,8 +177,16 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
         throw new RuntimeException("Could not process native constraint type");
     }
 
-    protected String getNativeColumnDefinition(Column column) {
-        return column.getType().get().name();
+    protected String getNativeColumnDefinition(Column.TYPE columnType) {
+        return columnType.name();
+    }
+
+    protected String getNativeColumnDefinition(Column.TYPE columnType, AlterColumnOptions alterColumnOptions) {
+        if (!alterColumnOptions.getColumnSize().isPresent()) {
+            return getNativeColumnDefinition(columnType);
+        }
+
+        return columnType.name() + "(" + alterColumnOptions.getColumnSize().get() + ")";
     }
 
     protected Function<Query, String> translatePhrase(Phrase phrase) {
@@ -177,5 +240,29 @@ public class DefaultPhraseTranslator implements PhraseTranslator {
 
     protected String getWithSizeOrDefault(Column column, int defaultSize) {
         return "(" + column.getSize().orElse(defaultSize) + ")";
+    }
+
+    protected void executeInStatement(String query) {
+        executeInStatement(new String[]{query});
+    }
+
+    protected void executeInStatement(String[] queries) {
+        Statement statement = null;
+        try {
+            statement = connection.createStatement();
+            for (String query : queries) {
+                statement.execute(query);
+            }
+
+        } catch (SQLException sqlException) {
+            throw new CouldNotProcessException(sqlException);
+        } finally {
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
     }
 }

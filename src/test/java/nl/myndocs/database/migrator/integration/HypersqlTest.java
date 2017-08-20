@@ -1,5 +1,6 @@
 package nl.myndocs.database.migrator.integration;
 
+import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.query.PhraseTranslator;
 import nl.myndocs.database.migrator.database.query.translator.HyperSQLPhraseTranslator;
 
@@ -12,7 +13,20 @@ public class HypersqlTest extends BaseIntegration {
 
     @Override
     protected PhraseTranslator phraseTranslator() {
-        return new HyperSQLPhraseTranslator();
+        try {
+            return new HyperSQLPhraseTranslator(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    protected Database database() {
+        try {
+            return new HyperSQLPhraseTranslator(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Connection getConnection() throws ClassNotFoundException {
