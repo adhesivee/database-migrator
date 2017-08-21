@@ -1,6 +1,7 @@
 package nl.myndocs.database.migrator.database.query;
 
 import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
+import nl.myndocs.database.migrator.definition.Constraint;
 
 import java.util.Collection;
 
@@ -15,6 +16,8 @@ public interface AlterTable {
     void addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, ForeignKeyOptions foreignKeyOptions);
 
     void dropForeignKey(String constraintName);
+
+    void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type);
 
     void dropConstraint(String constraintName);
 }

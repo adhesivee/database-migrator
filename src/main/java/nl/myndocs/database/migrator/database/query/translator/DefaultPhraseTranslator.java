@@ -163,6 +163,19 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         executeInStatement(alterForeignKeyQueryBuilder.toString());
     }
 
+    @Override
+    public void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type) {
+        String addConstraint = String.format(
+                "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
+                getAlterTableName(),
+                constraintName,
+                getNativeConstraintType(type),
+                String.join(",", columnNames)
+        );
+
+        executeInStatement(addConstraint);
+    }
+
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
     public DefaultPhraseTranslator(Connection connection) {
