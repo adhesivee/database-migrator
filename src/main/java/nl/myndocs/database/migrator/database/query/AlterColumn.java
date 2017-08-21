@@ -10,4 +10,6 @@ public interface AlterColumn {
     void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions);
 
     void setDefault(String defaultValue);
+
+    void rename(String rename);
 }

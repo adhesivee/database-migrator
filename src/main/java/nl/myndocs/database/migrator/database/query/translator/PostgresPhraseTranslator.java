@@ -34,6 +34,18 @@ public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
+    public void rename(String rename) {
+        executeInStatement(
+                String.format(
+                        "ALTER TABLE %s RENAME %s TO %s",
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        rename
+                )
+        );
+    }
+
+    @Override
     protected Function<Query, String> translatePhrase(Phrase phrase) {
         if (phrase.equals(Phrase.TYPE)) {
             return query -> "TYPE " + getNativeColumnDefinition(query.getColumn().getType().get());

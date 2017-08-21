@@ -44,6 +44,18 @@ public class DerbyPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
+    public void rename(String rename) {
+        executeInStatement(
+                String.format(
+                        "RENAME COLUMN %s.%s TO %s",
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        rename
+                )
+        );
+    }
+
+    @Override
     public String[] translatePhrases(Query query, Phrase... phrases) {
         if (query.equals(Phrase.ALTER_TABLE, Phrase.ALTER_COLUMN, Phrase.RENAME)) {
             Table table = query.getTable();

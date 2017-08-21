@@ -190,6 +190,18 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         executeInStatement(addConstraint);
     }
 
+    @Override
+    public void rename(String rename) {
+        executeInStatement(
+                String.format(
+                        "ALTER TABLE %s ALTER COLUMN %s RENAME TO %s",
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        rename
+                )
+        );
+    }
+
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
     public DefaultPhraseTranslator(Connection connection) {

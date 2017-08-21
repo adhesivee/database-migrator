@@ -5,7 +5,6 @@ import nl.myndocs.database.migrator.database.query.Phrase;
 import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,52 +75,34 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
+    public void rename(String rename) {
+        DatabaseColumn databaseColumn = loadDatabaseColumn(
+                getAlterTableName(),
+                getAlterColumnName()
+        );
+
+        executeInStatement(
+                String.format(
+                        "ALTER TABLE %s CHANGE %s %s %s %s %s",
+                        getAlterTableName(),
+                        getAlterColumnName(),
+                        rename,
+                        databaseColumn.getColumnType(),
+                        (databaseColumn.getColumnDefault() != null && !databaseColumn.getColumnDefault().isEmpty() ? "DEFAULT '" + databaseColumn.getColumnDefault() + "'" : ""),
+                        databaseColumn.getNotNullValue()
+                )
+        );
+    }
+
+    @Override
     protected Function<Query, String> translatePhrase(Phrase phrase) {
         return phrasesMap.getOrDefault(phrase, super.translatePhrase(phrase));
     }
 
-    @Override
-    public String[] translatePhrases(Query query, Phrase... phrases) {
-        if (query.equals(Phrase.ALTER_TABLE, Phrase.ALTER_COLUMN, Phrase.RENAME)) {
-            return new String[]{translatePhrase(Phrase.ALTER_TABLE).apply(query) + " " + alterColumnName().apply(query)};
-        }
-
-        if (query.equals(Phrase.ALTER_TABLE, Phrase.ALTER_COLUMN, Phrase.TYPE)) {
-            return new String[]{
-                    buildQuery(
-                            query,
-                            translatePhrase(Phrase.ALTER_TABLE),
-                            buildQuery -> "MODIFY COLUMN " + buildQuery.getColumn().getColumnName(),
-                            translatePhrase(Phrase.TYPE)
-                    )
-            };
-        }
-
-        return super.translatePhrases(query, phrases);
-    }
-
-    private Function<Query, String> alterColumnName() {
-        return query -> {
-            Table table = query.getTable();
-            Column column = query.getColumn();
-
-            DatabaseColumn databaseColumn = loadDatabaseColumn(table, column);
-            return String.format(
-                    "CHANGE %s %s %s %s %s",
-                    column.getColumnName(),
-                    column.getRename().get(),
-                    databaseColumn.getColumnType(),
-                    (databaseColumn.getColumnDefault() != null && !databaseColumn.getColumnDefault().isEmpty() ? "DEFAULT '" + databaseColumn.getColumnDefault() + "'" : ""),
-                    databaseColumn.getNotNullValue()
-            );
-        };
-    }
-
-
-    private DatabaseColumn loadDatabaseColumn(Table table, Column column) {
+    private DatabaseColumn loadDatabaseColumn(String tableName, String columnName) {
         try {
             Statement statement = connection.createStatement();
-            statement.execute("DESCRIBE " + table.getTableName());
+            statement.execute("DESCRIBE " + tableName);
 
             ResultSet resultSet = statement.getResultSet();
 
@@ -130,7 +111,7 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
             String columnDefault = "";
 
             while (resultSet.next()) {
-                if (resultSet.getString("Field").equals(column.getColumnName())) {
+                if (resultSet.getString("Field").equals(columnName)) {
                     if ("NO".equals(resultSet.getString("Null"))) {
                         notNullValue = "NOT NULL";
                     }

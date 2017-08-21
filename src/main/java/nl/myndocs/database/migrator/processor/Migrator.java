@@ -116,7 +116,9 @@ public class Migrator {
                 // Otherwise alterColumnType and alterColumnDefault will break
                 for (Column column : table.getChangeColumns()) {
                     if (column.getRename().isPresent()) {
-                        databaseCommands.alterColumnName(table, column);
+                        database.alterTable(table.getTableName())
+                                .alterColumn(column.getColumnName())
+                                .rename(column.getRename().get());
                     }
                 }
             }
