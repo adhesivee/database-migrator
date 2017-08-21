@@ -105,6 +105,19 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         executeInStatement(alterQuery);
     }
 
+    @Override
+    public void dropColumn(String columnName) {
+        String dropColumnFormat = "ALTER TABLE %s DROP COLUMN %s";
+
+        String alterQuery = String.format(
+                dropColumnFormat,
+                alterTableName,
+                columnName
+        );
+
+        executeInStatement(alterQuery);
+    }
+
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
 
     public DefaultPhraseTranslator(Connection connection) {

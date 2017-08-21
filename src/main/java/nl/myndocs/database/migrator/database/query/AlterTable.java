@@ -5,4 +5,6 @@ package nl.myndocs.database.migrator.database.query;
  */
 public interface AlterTable {
     AlterColumn alterColumn(String columnName);
+
+    void dropColumn(String columnName);
 }

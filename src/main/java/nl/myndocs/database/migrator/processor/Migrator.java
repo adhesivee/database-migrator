@@ -67,7 +67,8 @@ public class Migrator {
                     database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
                 }
 
-                table.getDropColumns().forEach(column -> databaseCommands.dropColumn(table, column));
+                table.getDropColumns().forEach(column -> database.alterTable(table.getTableName()).dropColumn(column));
+
                 table.getDropForeignKeys().forEach(constraintName -> databaseCommands.dropForeignKey(table, constraintName));
                 table.getNewConstraints().forEach(constraint -> databaseCommands.addConstraint(table, constraint));
                 table.getDropConstraints().forEach(constraintName -> databaseCommands.dropConstraint(table, constraintName));
