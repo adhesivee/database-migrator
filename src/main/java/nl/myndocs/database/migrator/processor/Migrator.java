@@ -1,7 +1,6 @@
 package nl.myndocs.database.migrator.processor;
 
 import nl.myndocs.database.migrator.MigrationScript;
-import nl.myndocs.database.migrator.database.DatabaseCommands;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
@@ -24,28 +23,25 @@ import java.util.Collection;
 public class Migrator {
     private static final String CHANGE_LOG_TABLE = "migration_changelog";
 
-    private final DatabaseCommands databaseCommands;
     private final Database database;
 
-    public Migrator(DatabaseCommands databaseCommands, Database database) {
-        this.databaseCommands = databaseCommands;
+    public Migrator(Database database) {
         this.database = database;
     }
 
     public void migrate(MigrationScript... migrationScripts) throws SQLException {
-        if (!databaseCommands.getTableValidator()
-                .tableExists(CHANGE_LOG_TABLE)) {
+        if (!database.hasTable(CHANGE_LOG_TABLE)) {
             Table table = new Table.Builder(CHANGE_LOG_TABLE)
                     .addColumn("id", Column.TYPE.INTEGER, column -> column.autoIncrement(true).primary(true))
                     .addColumn("migration_id", Column.TYPE.VARCHAR)
                     .addConstraint("migration_migration_id", Constraint.TYPE.UNIQUE, "migration_id")
                     .build();
 
-            databaseCommands.addColumnsWithCreateTable(table);
+            database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
         }
 
         for (MigrationScript migrationScript : migrationScripts) {
-            Connection connection = databaseCommands.getConnection();
+            Connection connection = database.getConnection();
 
             Migration migration = migrationScript.migrate(connection);
 
@@ -62,7 +58,7 @@ public class Migrator {
             }
 
             for (Table table : migration.getTables()) {
-                if (databaseCommands.getTableValidator().tableExists(table.getTableName())) {
+                if (database.hasTable(table.getTableName())) {
                     getColumnOptionsFromNewColumns(table).forEach(columnOptions -> database.alterTable(table.getTableName()).addColumn(columnOptions));
                 } else {
                     database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));

@@ -1,7 +1,6 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.PhraseTranslator;
 import nl.myndocs.database.migrator.database.query.translator.PostgresPhraseTranslator;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
@@ -20,16 +19,6 @@ public class PostgresTest extends BaseIntegration {
             .fromImage("postgres")
             .withPortBinding(5432)
             .build();
-
-
-    @Override
-    protected PhraseTranslator phraseTranslator() {
-        try {
-            return new PostgresPhraseTranslator(getConnection());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Override
     protected Database database() {

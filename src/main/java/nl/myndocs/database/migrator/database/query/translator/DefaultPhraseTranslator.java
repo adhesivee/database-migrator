@@ -10,9 +10,7 @@ import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Table;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -200,6 +198,30 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
                         rename
                 )
         );
+    }
+
+    @Override
+    public boolean hasTable(String tableName) {
+        try {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
+
+            boolean tableExists = false;
+            while (tables.next()) {
+                if (tableName.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+                    tableExists = true;
+                }
+            }
+
+            return tableExists;
+        } catch (SQLException e) {
+            throw new CouldNotProcessException(e);
+        }
+    }
+
+    @Override
+    public Connection getConnection() {
+        return connection;
     }
 
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();

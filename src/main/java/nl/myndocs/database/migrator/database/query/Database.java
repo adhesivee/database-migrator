@@ -2,6 +2,7 @@ package nl.myndocs.database.migrator.database.query;
 
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 
+import java.sql.Connection;
 import java.util.Collection;
 
 /**
@@ -11,4 +12,8 @@ public interface Database {
     void createTable(String tableName, Collection<ColumnOptions> columnOptions);
 
     AlterTable alterTable(String tableName);
+
+    boolean hasTable(String tableName);
+
+    Connection getConnection();
 }

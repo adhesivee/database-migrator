@@ -1,8 +1,6 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.DatabaseCommands;
 import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.PhraseTranslator;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
@@ -374,20 +372,10 @@ public abstract class BaseIntegration {
     }
 
     protected Migrator getMigrator() {
-        try {
-            return new Migrator(
-                    new DatabaseCommands(
-                            getConnection(),
-                            phraseTranslator()
-                    ),
-                    database()
-            );
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return new Migrator(
+                database()
+        );
     }
-
-    protected abstract PhraseTranslator phraseTranslator();
 
     protected abstract Database database();
 
