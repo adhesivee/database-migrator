@@ -6,7 +6,6 @@ import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.processor.Migrator;
-import nl.myndocs.database.migrator.validator.TableValidator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,9 +23,7 @@ public abstract class BaseIntegration {
         Connection connection = getConnection();
         Statement statement = connection.createStatement();
 
-        TableValidator tableValidator = new TableValidator(connection);
-
-        if (tableValidator.tableExists("migration_changelog")) {
+        if (database().hasTable("migration_changelog")) {
             statement.execute("DROP TABLE migration_changelog");
         }
 
