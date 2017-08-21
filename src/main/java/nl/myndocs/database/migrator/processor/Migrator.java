@@ -5,6 +5,7 @@ import nl.myndocs.database.migrator.database.DatabaseCommands;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Migration;
@@ -71,7 +72,18 @@ public class Migrator {
                 table.getDropForeignKeys().forEach(constraintName -> database.alterTable(table.getTableName()).dropForeignKey(constraintName));
                 table.getNewConstraints().forEach(constraint -> databaseCommands.addConstraint(table, constraint));
                 table.getDropConstraints().forEach(constraintName -> database.alterTable(table.getTableName()).dropConstraint(constraintName));
-                table.getNewForeignKeys().forEach(foreignKey -> databaseCommands.addForeignKey(table, foreignKey));
+                table.getNewForeignKeys().forEach(foreignKey ->
+                        database.alterTable(table.getTableName()).addForeignKey(
+                                foreignKey.getConstraintName(),
+                                foreignKey.getForeignTable(),
+                                foreignKey.getLocalKeys(),
+                                foreignKey.getForeignKeys(),
+                                new ForeignKeyOptions(
+                                        foreignKey.getDeleteCascade(),
+                                        foreignKey.getUpdateCascade()
+                                )
+                        )
+                );
 
 
                 for (Column column : table.getChangeColumns()) {

@@ -4,6 +4,7 @@ import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.database.query.*;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
+import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
@@ -134,6 +135,32 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
         );
 
         executeInStatement(dropConstraintQuery);
+    }
+
+    @Override
+    public void addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, ForeignKeyOptions foreignKeyOptions) {
+        StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
+
+        alterForeignKeyQueryBuilder.append(
+                String.format(
+                        "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
+                        getAlterTableName(),
+                        constraintName,
+                        String.join(",", localKeys),
+                        foreignTable,
+                        String.join(",", foreignKeys)
+                )
+        );
+
+        if (foreignKeyOptions.getOnDelete().isPresent()) {
+            alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKeyOptions.getOnDelete().get()));
+        }
+
+        if (foreignKeyOptions.getOnUpdate().isPresent()) {
+            alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKeyOptions.getOnUpdate().get()));
+        }
+
+        executeInStatement(alterForeignKeyQueryBuilder.toString());
     }
 
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
