@@ -7,4 +7,8 @@ public interface AlterTable {
     AlterColumn alterColumn(String columnName);
 
     void dropColumn(String columnName);
+
+    void dropForeignKey(String constraintName);
+
+    void dropConstraint(String constraintName);
 }

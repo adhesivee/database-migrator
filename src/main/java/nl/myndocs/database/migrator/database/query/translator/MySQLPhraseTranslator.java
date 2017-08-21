@@ -36,6 +36,32 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
     }
 
     @Override
+    public void dropForeignKey(String constraintName) {
+        String dropConstraintFormat = "ALTER TABLE %s DROP FOREIGN KEY %s";
+
+        String dropConstraintQuery = String.format(
+                dropConstraintFormat,
+                getAlterTableName(),
+                constraintName
+        );
+
+        executeInStatement(dropConstraintQuery);
+    }
+
+    @Override
+    public void dropConstraint(String constraintName) {
+        String dropConstraintFormat = "ALTER TABLE %s DROP INDEX %s";
+
+        String dropConstraintQuery = String.format(
+                dropConstraintFormat,
+                getAlterTableName(),
+                constraintName
+        );
+
+        executeInStatement(dropConstraintQuery);
+    }
+
+    @Override
     public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
         String alterTypeFormat = "ALTER TABLE %s MODIFY COLUMN %s %s";
 

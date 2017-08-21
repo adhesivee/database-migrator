@@ -109,13 +109,31 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
     public void dropColumn(String columnName) {
         String dropColumnFormat = "ALTER TABLE %s DROP COLUMN %s";
 
-        String alterQuery = String.format(
+        String dropColumnQuery = String.format(
                 dropColumnFormat,
                 alterTableName,
                 columnName
         );
 
-        executeInStatement(alterQuery);
+        executeInStatement(dropColumnQuery);
+    }
+
+    @Override
+    public void dropForeignKey(String constraintName) {
+        dropConstraint(constraintName);
+    }
+
+    @Override
+    public void dropConstraint(String constraintName) {
+        String dropConstraintFormat = "ALTER TABLE %s DROP CONSTRAINT %s";
+
+        String dropConstraintQuery = String.format(
+                dropConstraintFormat,
+                alterTableName,
+                constraintName
+        );
+
+        executeInStatement(dropConstraintQuery);
     }
 
     private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
