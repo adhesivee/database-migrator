@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * Created by albert on 18-8-2017.
  */
-public class DefaultPhraseTranslator implements Database, AlterTable, AlterColumn {
+public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     private final Connection connection;
     private String alterTableName;
@@ -224,7 +224,7 @@ public class DefaultPhraseTranslator implements Database, AlterTable, AlterColum
         return connection;
     }
 
-    public DefaultPhraseTranslator(Connection connection) {
+    public DefaultDatabase(Connection connection) {
         this.connection = connection;
     }
 

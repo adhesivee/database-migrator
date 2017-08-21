@@ -10,10 +10,10 @@ import java.sql.Connection;
 /**
  * Created by albert on 18-8-2017.
  */
-public class DerbyPhraseTranslator extends DefaultPhraseTranslator {
-    private static final Logger logger = LoggerFactory.getLogger(DerbyPhraseTranslator.class);
+public class DerbyDatabase extends DefaultDatabase {
+    private static final Logger logger = LoggerFactory.getLogger(DerbyDatabase.class);
 
-    public DerbyPhraseTranslator(Connection connection) {
+    public DerbyDatabase(Connection connection) {
         super(connection);
     }
 

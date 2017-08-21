@@ -8,8 +8,8 @@ import java.sql.Connection;
 /**
  * Created by albert on 18-8-2017.
  */
-public class PostgresPhraseTranslator extends DefaultPhraseTranslator {
-    public PostgresPhraseTranslator(Connection connection) {
+public class PostgresDatabase extends DefaultDatabase {
+    public PostgresDatabase(Connection connection) {
         super(connection);
     }
 

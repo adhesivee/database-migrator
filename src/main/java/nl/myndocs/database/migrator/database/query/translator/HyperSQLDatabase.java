@@ -8,9 +8,9 @@ import java.sql.Connection;
 /**
  * Created by albert on 18-8-2017.
  */
-public class HyperSQLPhraseTranslator extends DefaultPhraseTranslator {
+public class HyperSQLDatabase extends DefaultDatabase {
 
-    public HyperSQLPhraseTranslator(Connection connection) {
+    public HyperSQLDatabase(Connection connection) {
         super(connection);
     }
 

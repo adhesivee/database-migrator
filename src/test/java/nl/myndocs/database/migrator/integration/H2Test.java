@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.translator.H2PhraseTranslator;
+import nl.myndocs.database.migrator.database.query.translator.H2Database;
 
 import java.sql.Connection;
 
@@ -13,7 +13,7 @@ public class H2Test extends BaseIntegration {
     @Override
     protected Database database() {
         try {
-            return new H2PhraseTranslator(getConnection());
+            return new H2Database(getConnection());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

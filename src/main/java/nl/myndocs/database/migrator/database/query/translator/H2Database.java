@@ -8,8 +8,8 @@ import java.sql.Connection;
 /**
  * Created by albert on 18-8-2017.
  */
-public class H2PhraseTranslator extends DefaultPhraseTranslator {
-    public H2PhraseTranslator(Connection connection) {
+public class H2Database extends DefaultDatabase {
+    public H2Database(Connection connection) {
         super(connection);
     }
 

@@ -14,11 +14,11 @@ import java.sql.Statement;
 /**
  * Created by albert on 18-8-2017.
  */
-public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
-    private static final Logger logger = LoggerFactory.getLogger(MySQLPhraseTranslator.class);
+public class MySQLDatabase extends DefaultDatabase {
+    private static final Logger logger = LoggerFactory.getLogger(MySQLDatabase.class);
     private final Connection connection;
 
-    public MySQLPhraseTranslator(Connection connection) {
+    public MySQLDatabase(Connection connection) {
         super(connection);
 
         this.connection = connection;

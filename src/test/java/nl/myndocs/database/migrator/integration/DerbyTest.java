@@ -1,7 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
 import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.translator.DerbyPhraseTranslator;
+import nl.myndocs.database.migrator.database.query.translator.DerbyDatabase;
 
 import java.sql.Connection;
 
@@ -10,7 +10,7 @@ public class DerbyTest extends BaseIntegration {
     @Override
     protected Database database() {
         try {
-            return new DerbyPhraseTranslator(getConnection());
+            return new DerbyDatabase(getConnection());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
