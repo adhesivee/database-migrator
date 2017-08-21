@@ -67,18 +67,7 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
     public void createTable(String tableName, Collection<ColumnOptions> columnOptions) {
         Collection<String> columnQueries = new ArrayList<>();
         for (ColumnOptions columnOption : columnOptions) {
-            columnQueries.add(columnOption.getColumnName() + " " +
-                    getNativeColumnDefinition(
-                            columnOption.getColumnType(),
-                            new ChangeTypeOptions(
-                                    columnOption.getAutoIncrement(),
-                                    columnOption.getColumnSize()
-                            )
-                    ) + " " +
-                    (columnOption.getDefaultValue().isPresent() ? getDefaultValue(columnOption.getColumnType(), columnOption.getDefaultValue().get()) : "") + " " +
-                    (columnOption.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                    (columnOption.getIsPrimary().orElse(false) ? "PRIMARY KEY" : "") + " "
-            );
+            columnQueries.add(translateColumnOptions(columnOption));
         }
 
 
@@ -89,6 +78,31 @@ public class DefaultPhraseTranslator implements PhraseTranslator, Database, Alte
                         String.join(",", columnQueries)
                 )
         );
+    }
+
+    @Override
+    public void addColumn(ColumnOptions columnOption) {
+        executeInStatement(
+                String.format(
+                        "ALTER TABLE %s ADD COLUMN %s",
+                        getAlterTableName(),
+                        translateColumnOptions(columnOption)
+                )
+        );
+    }
+
+    private String translateColumnOptions(ColumnOptions columnOption) {
+        return columnOption.getColumnName() + " " +
+                getNativeColumnDefinition(
+                        columnOption.getColumnType(),
+                        new ChangeTypeOptions(
+                                columnOption.getAutoIncrement(),
+                                columnOption.getColumnSize()
+                        )
+                ) + " " +
+                (columnOption.getDefaultValue().isPresent() ? getDefaultValue(columnOption.getColumnType(), columnOption.getDefaultValue().get()) : "") + " " +
+                (columnOption.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
+                (columnOption.getIsPrimary().orElse(false) ? "PRIMARY KEY" : "") + " ";
     }
 
     @Override

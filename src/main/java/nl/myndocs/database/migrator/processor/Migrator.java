@@ -63,7 +63,7 @@ public class Migrator {
 
             for (Table table : migration.getTables()) {
                 if (databaseCommands.getTableValidator().tableExists(table.getTableName())) {
-                    databaseCommands.addColumnsWithAlterTable(table);
+                    getColumnOptionsFromNewColumns(table).forEach(columnOptions -> database.alterTable(table.getTableName()).addColumn(columnOptions));
                 } else {
                     database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
                 }

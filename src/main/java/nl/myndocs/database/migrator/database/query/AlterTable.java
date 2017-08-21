@@ -1,5 +1,6 @@
 package nl.myndocs.database.migrator.database.query;
 
+import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Constraint;
 
@@ -10,6 +11,8 @@ import java.util.Collection;
  */
 public interface AlterTable {
     AlterColumn alterColumn(String columnName);
+
+    void addColumn(ColumnOptions columnOption);
 
     void dropColumn(String columnName);
 
