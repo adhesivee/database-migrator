@@ -1,13 +1,11 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.DatabaseCommands;
-import nl.myndocs.database.migrator.database.query.PhraseTranslator;
+import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.processor.Migrator;
-import nl.myndocs.database.migrator.validator.TableValidator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,9 +23,7 @@ public abstract class BaseIntegration {
         Connection connection = getConnection();
         Statement statement = connection.createStatement();
 
-        TableValidator tableValidator = new TableValidator(connection);
-
-        if (tableValidator.tableExists("migration_changelog")) {
+        if (database().hasTable("migration_changelog")) {
             statement.execute("DROP TABLE migration_changelog");
         }
 
@@ -373,19 +369,12 @@ public abstract class BaseIntegration {
     }
 
     protected Migrator getMigrator() {
-        try {
-            return new Migrator(
-                    new DatabaseCommands(
-                            getConnection(),
-                            phraseTranslator()
-                    )
-            );
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return new Migrator(
+                database()
+        );
     }
 
-    protected abstract PhraseTranslator phraseTranslator();
+    protected abstract Database database();
 
     protected abstract Connection getConnection() throws ClassNotFoundException;
 }
