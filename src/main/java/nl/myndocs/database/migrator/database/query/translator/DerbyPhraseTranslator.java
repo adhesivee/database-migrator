@@ -1,15 +1,11 @@
 package nl.myndocs.database.migrator.database.query.translator;
 
-import nl.myndocs.database.migrator.database.query.Phrase;
-import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.util.function.Function;
 
 /**
  * Created by albert on 18-8-2017.
@@ -53,34 +49,6 @@ public class DerbyPhraseTranslator extends DefaultPhraseTranslator {
                         rename
                 )
         );
-    }
-
-    @Override
-    public String[] translatePhrases(Query query, Phrase... phrases) {
-        if (query.equals(Phrase.ALTER_TABLE, Phrase.ALTER_COLUMN, Phrase.RENAME)) {
-            Table table = query.getTable();
-            Column column = query.getColumn();
-
-            return new String[]{
-                    String.format(
-                            "RENAME COLUMN %1$s.%2$s TO %3$s",
-                            table.getTableName(),
-                            column.getColumnName(),
-                            column.getRename().get()
-                    )
-            };
-        }
-
-        return super.translatePhrases(query, phrases);
-    }
-
-    @Override
-    protected Function<Query, String> translatePhrase(Phrase phrase) {
-        if (phrase.equals(Phrase.TYPE)) {
-            return query -> "SET DATA TYPE " + getNativeColumnDefinition(query.getColumn().getType().get());
-        }
-
-        return super.translatePhrase(phrase);
     }
 
     @Override

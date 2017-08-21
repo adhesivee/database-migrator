@@ -1,8 +1,6 @@
 package nl.myndocs.database.migrator.database.query.translator;
 
 import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
-import nl.myndocs.database.migrator.database.query.Phrase;
-import nl.myndocs.database.migrator.database.query.Query;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import org.slf4j.Logger;
@@ -12,9 +10,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Created by albert on 18-8-2017.
@@ -23,15 +18,10 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
     private static final Logger logger = LoggerFactory.getLogger(MySQLPhraseTranslator.class);
     private final Connection connection;
 
-    private Map<Phrase, Function<Query, String>> phrasesMap = new HashMap<>();
-
     public MySQLPhraseTranslator(Connection connection) {
         super(connection);
 
         this.connection = connection;
-
-        phrasesMap.put(Phrase.DROP_FOREIGN_KEY, query -> "DROP FOREIGN KEY " + query.getConstraintName());
-        phrasesMap.put(Phrase.DROP_CONSTRAINT, query -> "DROP INDEX " + query.getConstraintName());
     }
 
     @Override
@@ -92,11 +82,6 @@ public class MySQLPhraseTranslator extends DefaultPhraseTranslator {
                         databaseColumn.getNotNullValue()
                 )
         );
-    }
-
-    @Override
-    protected Function<Query, String> translatePhrase(Phrase phrase) {
-        return phrasesMap.getOrDefault(phrase, super.translatePhrase(phrase));
     }
 
     private DatabaseColumn loadDatabaseColumn(String tableName, String columnName) {
