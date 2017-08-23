@@ -1,4 +1,4 @@
-package nl.myndocs.database.migrator.database.query.translator;
+package nl.myndocs.database.migrator.database;
 
 import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;

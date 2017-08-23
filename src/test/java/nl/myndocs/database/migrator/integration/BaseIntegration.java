@@ -1,5 +1,6 @@
 package nl.myndocs.database.migrator.integration;
 
+import nl.myndocs.database.migrator.database.Selector;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
@@ -11,6 +12,8 @@ import org.junit.Test;
 
 import java.sql.*;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 /**
@@ -368,13 +371,26 @@ public abstract class BaseIntegration {
         connection.close();
     }
 
+    @Test
+    public void testDatabaseIsOfExpectedClass() {
+        assertThat(database(), is(instanceOf(expectedDatabaseClass())));
+    }
+
     protected Migrator getMigrator() {
         return new Migrator(
                 database()
         );
     }
 
-    protected abstract Database database();
+    protected Database database() {
+        try {
+            return new Selector().loadFromConnection(getConnection());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     protected abstract Connection getConnection() throws ClassNotFoundException;
+
+    protected abstract Class<? extends Database> expectedDatabaseClass();
 }
