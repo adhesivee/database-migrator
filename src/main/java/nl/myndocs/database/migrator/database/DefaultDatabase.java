@@ -114,7 +114,6 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
                 getNativeColumnDefinition(type, changeTypeOptions)
         );
 
-        System.out.println(alterQuery);
         executeInStatement(alterQuery);
     }
 

@@ -1,7 +1,8 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.MySQLDatabase;
+import nl.myndocs.database.migrator.database.DerbyDatabase;
 import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.database.MySQLDatabase;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
 import org.jboss.arquillian.junit.Arquillian;
@@ -33,8 +34,6 @@ public class MysqlTest extends BaseIntegration {
 
         String containerHost = mysqlContainer.getIpAddress();
         int containerPort = mysqlContainer.getBindPort(3306);
-
-        System.out.println("Connecting to database... " + containerHost + ":" + containerPort);
 
         return acquireConnection(
                 "jdbc:mysql://" + containerHost + ":" + containerPort + "/integration",

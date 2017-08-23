@@ -1,14 +1,19 @@
 package nl.myndocs.database.migrator.integration;
 
+import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.Selector;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
 import nl.myndocs.database.migrator.definition.Migration;
+import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
 import nl.myndocs.database.migrator.processor.Migrator;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 
@@ -20,6 +25,7 @@ import static org.junit.Assert.*;
  * Created by albert on 14-8-2017.
  */
 public abstract class BaseIntegration {
+    private static final Logger logger = LoggerFactory.getLogger(BaseIntegration.class);
 
     @Before
     public void dropChangelog() throws ClassNotFoundException, SQLException {
@@ -38,15 +44,9 @@ public abstract class BaseIntegration {
     public void testConnection() throws SQLException, ClassNotFoundException, InterruptedException {
         Connection connection = getConnection();
         getMigrator().migrate(
-                connection1 -> buildMigration()
+                buildMigration()
         );
 
-        performIntegration();
-    }
-
-    public void performIntegration(
-    ) throws SQLException, ClassNotFoundException, InterruptedException {
-        Connection connection = getConnection();
 
         Statement statement = connection.createStatement();
         statement.execute("INSERT INTO some_table (name, change_type) VALUES ('test1', 'type-test')");
@@ -54,46 +54,54 @@ public abstract class BaseIntegration {
         statement.execute("SELECT * FROM some_table");
 
         ResultSet resultSet = statement.getResultSet();
+
+        int lastIndex = -1;
+
         while (resultSet.next()) {
-            System.out.print("\t" + resultSet.getInt(1));
-            System.out.println("\t" + resultSet.getString(2));
+            int index = resultSet.getInt(1);
+            assertThat(index, is(Matchers.greaterThan(lastIndex)));
+            lastIndex = index;
         }
 
         statement.close();
         connection.close();
     }
 
-    public Migration buildMigration() {
-        Migration.Builder builder = new Migration.Builder("migration-1");
+    public MigrationScript buildMigration() {
 
-        builder.table("some_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR)
-                .addColumn("name_non_null", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default"))
-                .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
-                .addColumn("some_uuid", Column.TYPE.UUID)
-                .addColumn("change_type", Column.TYPE.UUID);
+        return new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .addColumn("name_non_null", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default"))
+                            .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
+                            .addColumn("some_uuid", Column.TYPE.UUID)
+                            .addColumn("change_type", Column.TYPE.UUID)
+                            .save();
 
-        builder.table("some_other_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("some_table_id", Column.TYPE.INTEGER)
-                .addColumn("name", Column.TYPE.VARCHAR, column -> {
-                    column.size(2);
-                })
-                .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
-                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                    migration.table("some_other_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("some_table_id", Column.TYPE.INTEGER)
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> {
+                                column.size(2);
+                            })
+                            .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
+                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                            })
+                            .save();
+
+                    migration.table("some_table")
+                            .changeColumn("change_type", column -> column.type(Column.TYPE.VARCHAR))
+                            .save();
+
                 });
-
-        builder.table("some_table")
-                .changeColumn("change_type", column -> column.type(Column.TYPE.VARCHAR));
-
-        return builder.build();
     }
 
     protected Connection acquireConnection(String connectionUri, String username, String password) {
         try {
-            System.out.println("Getting connection");
             return DriverManager.getConnection(
                     connectionUri,
                     username,
@@ -106,7 +114,7 @@ public abstract class BaseIntegration {
                 e.printStackTrace();
             }
             sqlException.printStackTrace();
-            System.out.println("Re-attempt acquiring connection");
+            logger.warn("Re-attempt acquiring connection");
             return acquireConnection(connectionUri, username, password);
         }
     }
@@ -114,23 +122,26 @@ public abstract class BaseIntegration {
     // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
     @Test(expected = Exception.class)
     public void testForeignKeyConstraint() throws Exception {
-        Migration.Builder builder = new Migration.Builder("migration-1");
+        SimpleMigrationScript migrationScript = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
 
-        builder.table("some_foreign_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR);
+                    migration.table("some_foreign_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .save();
 
-        builder.table("some_foreign_other_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("some_table_id", Column.TYPE.INTEGER)
-                .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
-                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                    migration.table("some_foreign_other_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("some_table_id", Column.TYPE.INTEGER)
+                            .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
+                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                            })
+                            .save();
                 });
 
-        getMigrator().migrate(
-                connection -> builder.build()
-        );
+        getMigrator().migrate(migrationScript);
 
         Statement statement = getConnection().createStatement();
         statement.execute("INSERT INTO some_foreign_other_table (some_table_id) VALUES (1)");
@@ -139,28 +150,36 @@ public abstract class BaseIntegration {
 
     @Test
     public void testRemoveForeignKeyConstraint() throws Exception {
-        final Migration.Builder createBuilder = new Migration.Builder("migration-1");
+        SimpleMigrationScript migrationScript = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_foreign_drop_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .save();
 
-        createBuilder.table("some_foreign_drop_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR);
-
-        createBuilder.table("some_foreign_drop_other_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("some_table_id", Column.TYPE.INTEGER)
-                .addForeignKey("some_foreign_drop_FK", "some_foreign_drop_table", "some_table_id", "id", key -> {
-                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                    migration.table("some_foreign_drop_other_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("some_table_id", Column.TYPE.INTEGER)
+                            .addForeignKey("some_foreign_drop_FK", "some_foreign_drop_table", "some_table_id", "id", key -> {
+                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                            })
+                            .save();
                 });
 
-        final Migration.Builder dropTableBuilder = new Migration.Builder("migration-2");
-
-        dropTableBuilder.table("some_foreign_drop_other_table")
-                .dropForeignKey("some_foreign_drop_FK");
+        SimpleMigrationScript migrationScript2 = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("some_foreign_drop_other_table")
+                            .dropForeignKey("some_foreign_drop_FK")
+                            .save();
+                }
+        );
 
         getMigrator().migrate(
-                connection -> createBuilder.build(),
-                connection -> dropTableBuilder.build()
+                migrationScript,
+                migrationScript2
         );
 
         Statement statement = getConnection().createStatement();
@@ -170,15 +189,17 @@ public abstract class BaseIntegration {
 
     @Test
     public void testAddUniqueConstraint() throws ClassNotFoundException, SQLException {
-        final Migration.Builder createBuilder = new Migration.Builder("migration-1");
+        SimpleMigrationScript migrationScript = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_add_unique_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .save();
 
-        createBuilder.table("some_add_unique_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR);
-
-        getMigrator().migrate(
-                connection -> createBuilder.build()
+                }
         );
+        getMigrator().migrate(migrationScript);
 
         Connection connection = getConnection();
         Statement statement = connection.createStatement();
@@ -186,14 +207,16 @@ public abstract class BaseIntegration {
         statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
         statement.execute("TRUNCATE TABLE some_add_unique_table");
 
-        final Migration.Builder uniqueBuilder = new Migration.Builder("migration-2");
-
-        uniqueBuilder.table("some_add_unique_table")
-                .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name");
-
-        getMigrator().migrate(
-                connection1 -> uniqueBuilder.build()
+        migrationScript = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("some_add_unique_table")
+                            .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .save();
+                }
         );
+
+        getMigrator().migrate(migrationScript);
 
         statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
         try {
@@ -209,26 +232,41 @@ public abstract class BaseIntegration {
 
     @Test
     public void testDropUniqueConstraint() throws Exception {
-        final Migration.Builder createBuilder = new Migration.Builder("migration-1");
+        SimpleMigrationScript createBuilder = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_add_and_drop_unique_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .save();
 
-        createBuilder.table("some_add_and_drop_unique_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR);
+                }
+        );
 
-        final Migration.Builder addConstraintBuilder = new Migration.Builder("migration-2");
+        SimpleMigrationScript addConstraintBuilder = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
 
-        addConstraintBuilder.table("some_add_and_drop_unique_table")
-                .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name");
+                    migration.table("some_add_and_drop_unique_table")
+                            .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .save();
 
-        final Migration.Builder dropConstraintBuilder = new Migration.Builder("migration-3");
+                }
+        );
 
-        dropConstraintBuilder.table("some_add_and_drop_unique_table")
-                .dropConstraint("unique_add_and_drop_constraint_name");
+        SimpleMigrationScript dropConstraintBuilder = new SimpleMigrationScript(
+                "migration-3",
+                migration -> {
+                    migration.table("some_add_and_drop_unique_table")
+                            .dropConstraint("unique_add_and_drop_constraint_name")
+                            .save();
+                }
+        );
 
         getMigrator().migrate(
-                connection -> createBuilder.build(),
-                connection -> addConstraintBuilder.build(),
-                connection -> dropConstraintBuilder.build()
+                createBuilder,
+                addConstraintBuilder,
+                dropConstraintBuilder
         );
 
         Connection connection = getConnection();
@@ -242,41 +280,57 @@ public abstract class BaseIntegration {
 
     @Test
     public void testAddingNewColumnsToExistingTable() throws ClassNotFoundException, SQLException {
-        final Migration.Builder builder = new Migration.Builder("migration-1");
+        SimpleMigrationScript builder = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_appending_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .save();
+                }
+        );
 
-        builder.table("some_appending_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR);
-
-        final Migration.Builder addNewColumnBuilder = new Migration.Builder("migration-2");
-
-        addNewColumnBuilder.table("some_appending_table")
-                .addColumn("some_table_id", Column.TYPE.INTEGER);
+        SimpleMigrationScript addNewColumnBuilder = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("some_appending_table")
+                            .addColumn("some_table_id", Column.TYPE.INTEGER)
+                            .save();
+                }
+        );
 
         getMigrator().migrate(
-                connection -> builder.build(),
-                connection -> addNewColumnBuilder.build()
+                builder,
+                addNewColumnBuilder
         );
 
     }
 
     @Test
     public void testDroppedColumn() throws ClassNotFoundException, SQLException {
-        final Migration.Builder builder = new Migration.Builder("migration-1");
+        SimpleMigrationScript builder = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("some_dropped_column_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR)
+                            .addColumn("some_table_id", Column.TYPE.INTEGER)
+                            .save();
+                }
+        );
 
-        builder.table("some_dropped_column_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("name", Column.TYPE.VARCHAR)
-                .addColumn("some_table_id", Column.TYPE.INTEGER);
+        SimpleMigrationScript dropColumnBuilder = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("some_dropped_column_table")
+                            .dropColumn("some_table_id")
+                            .save();
 
-        final Migration.Builder dropColumnBuilder = new Migration.Builder("migration-2");
-
-        dropColumnBuilder.table("some_dropped_column_table")
-                .dropColumn("some_table_id");
-
+                }
+        );
         getMigrator().migrate(
-                connection -> builder.build(),
-                connection -> dropColumnBuilder.build()
+                builder,
+                dropColumnBuilder
         );
 
         Connection connection = getConnection();
@@ -305,21 +359,28 @@ public abstract class BaseIntegration {
         Connection connection = getConnection();
         Migrator migrator = getMigrator();
 
-        final Migration.Builder builder = new Migration.Builder("migration-1");
+        SimpleMigrationScript builder = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("test_rename_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("fixed_name", Column.TYPE.VARCHAR)
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"))
+                            .save();
+                }
+        );
 
-        builder.table("test_rename_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("fixed_name", Column.TYPE.VARCHAR)
-                .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
-
-        final Migration.Builder renameBuilder = new Migration.Builder("migration-2");
-
-        renameBuilder.table("test_rename_table")
-                .changeColumn("name", column -> column.rename("renamed"));
-
+        SimpleMigrationScript renameBuilder = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("test_rename_table")
+                            .changeColumn("name", column -> column.rename("renamed"))
+                            .save();
+                }
+        );
         migrator.migrate(
-                connection1 -> builder.build(),
-                connection1 -> renameBuilder.build()
+                builder,
+                renameBuilder
         );
 
         Statement statement = connection.createStatement();
@@ -340,21 +401,30 @@ public abstract class BaseIntegration {
     public void testChangingDefaults() throws ClassNotFoundException, SQLException {
         Connection connection = getConnection();
         Migrator migrator = getMigrator();
-        final Migration.Builder builder = new Migration.Builder("migration-1");
 
-        builder.table("test_change_default_table")
-                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                .addColumn("fixed_name", Column.TYPE.VARCHAR)
-                .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"));
+        SimpleMigrationScript builder = new SimpleMigrationScript(
+                "migration-1",
+                migration -> {
+                    migration.table("test_change_default_table")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("fixed_name", Column.TYPE.VARCHAR)
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default-value"))
+                            .save();
+                }
+        );
 
-        final Migration.Builder changeDefaultBuilder = new Migration.Builder("migration-2");
-
-        changeDefaultBuilder.table("test_change_default_table")
-                .changeColumn("name", column -> column.defaultValue("changed-value"));
+        SimpleMigrationScript changeDefaultBuilder = new SimpleMigrationScript(
+                "migration-2",
+                migration -> {
+                    migration.table("test_change_default_table")
+                            .changeColumn("name", column -> column.defaultValue("changed-value"))
+                            .save();
+                }
+        );
 
         migrator.migrate(
-                connection1 -> builder.build(),
-                connection1 -> changeDefaultBuilder.build()
+                builder,
+                changeDefaultBuilder
         );
 
         Statement statement = connection.createStatement();

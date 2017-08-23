@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 /**
  * Created by albert on 15-8-2017.
@@ -31,19 +32,23 @@ public class Migrator {
 
     public void migrate(MigrationScript... migrationScripts) throws SQLException {
         if (!database.hasTable(CHANGE_LOG_TABLE)) {
-            Table table = new Table.Builder(CHANGE_LOG_TABLE)
+            new Table.Builder(CHANGE_LOG_TABLE, newTableConsumer())
                     .addColumn("id", Column.TYPE.INTEGER, column -> column.autoIncrement(true).primary(true))
                     .addColumn("migration_id", Column.TYPE.VARCHAR)
                     .addConstraint("migration_migration_id", Constraint.TYPE.UNIQUE, "migration_id")
-                    .build();
-
-            database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
+                    .save();
         }
 
         for (MigrationScript migrationScript : migrationScripts) {
             Connection connection = database.getConnection();
 
-            Migration migration = migrationScript.migrate(connection);
+            Migration migration = new Migration(
+                    migrationScript.migrationId(),
+                    database,
+                    newTableConsumer()
+            );
+
+            migrationScript.migrate(migration);
 
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " + CHANGE_LOG_TABLE + " WHERE migration_id = ?");
             preparedStatement.setString(1, migration.getMigrationId());
@@ -57,72 +62,74 @@ public class Migrator {
                 return;
             }
 
-            for (Table table : migration.getTables()) {
-                if (database.hasTable(table.getTableName())) {
-                    getColumnOptionsFromNewColumns(table).forEach(columnOptions -> database.alterTable(table.getTableName()).addColumn(columnOptions));
-                } else {
-                    database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
-                }
-
-                table.getDropColumns().forEach(column -> database.alterTable(table.getTableName()).dropColumn(column));
-                table.getDropForeignKeys().forEach(constraintName -> database.alterTable(table.getTableName()).dropForeignKey(constraintName));
-                table.getNewConstraints().forEach(constraint ->
-                        database.alterTable(table.getTableName()).addConstraint(
-                                constraint.getConstraintName(),
-                                constraint.getColumnNames(),
-                                constraint.getType().get()
-                        )
-                );
-                table.getDropConstraints().forEach(constraintName -> database.alterTable(table.getTableName()).dropConstraint(constraintName));
-                table.getNewForeignKeys().forEach(foreignKey ->
-                        database.alterTable(table.getTableName()).addForeignKey(
-                                foreignKey.getConstraintName(),
-                                foreignKey.getForeignTable(),
-                                foreignKey.getLocalKeys(),
-                                foreignKey.getForeignKeys(),
-                                new ForeignKeyOptions(
-                                        foreignKey.getDeleteCascade(),
-                                        foreignKey.getUpdateCascade()
-                                )
-                        )
-                );
-
-
-                for (Column column : table.getChangeColumns()) {
-                    if (column.getType().isPresent()) {
-                        database.alterTable(table.getTableName())
-                                .alterColumn(column.getColumnName())
-                                .changeType(
-                                        column.getType().get(),
-                                        new ChangeTypeOptions(
-                                                column.getAutoIncrement(),
-                                                column.getSize()
-                                        )
-                                );
-                    }
-
-                    if (column.getDefaultValue().isPresent()) {
-                        database.alterTable(table.getTableName())
-                                .alterColumn(column.getColumnName())
-                                .setDefault(column.getDefaultValue().get());
-                    }
-                }
-
-                // Make sure renames always happens last
-                // Otherwise alterColumnType and alterColumnDefault will break
-                for (Column column : table.getChangeColumns()) {
-                    if (column.getRename().isPresent()) {
-                        database.alterTable(table.getTableName())
-                                .alterColumn(column.getColumnName())
-                                .rename(column.getRename().get());
-                    }
-                }
-            }
-
             PreparedStatement insertPreparedStatement = connection.prepareStatement("INSERT INTO " + CHANGE_LOG_TABLE + " (migration_id) VALUES (?)");
             insertPreparedStatement.setString(1, migration.getMigrationId());
             insertPreparedStatement.execute();
         }
+    }
+
+    private Consumer<Table> newTableConsumer() {
+        return (table -> {
+            if (database.hasTable(table.getTableName())) {
+                getColumnOptionsFromNewColumns(table).forEach(columnOptions -> database.alterTable(table.getTableName()).addColumn(columnOptions));
+            } else {
+                database.createTable(table.getTableName(), getColumnOptionsFromNewColumns(table));
+            }
+
+            table.getDropColumns().forEach(column -> database.alterTable(table.getTableName()).dropColumn(column));
+            table.getDropForeignKeys().forEach(constraintName -> database.alterTable(table.getTableName()).dropForeignKey(constraintName));
+            table.getNewConstraints().forEach(constraint ->
+                    database.alterTable(table.getTableName()).addConstraint(
+                            constraint.getConstraintName(),
+                            constraint.getColumnNames(),
+                            constraint.getType().get()
+                    )
+            );
+            table.getDropConstraints().forEach(constraintName -> database.alterTable(table.getTableName()).dropConstraint(constraintName));
+            table.getNewForeignKeys().forEach(foreignKey ->
+                    database.alterTable(table.getTableName()).addForeignKey(
+                            foreignKey.getConstraintName(),
+                            foreignKey.getForeignTable(),
+                            foreignKey.getLocalKeys(),
+                            foreignKey.getForeignKeys(),
+                            new ForeignKeyOptions(
+                                    foreignKey.getDeleteCascade(),
+                                    foreignKey.getUpdateCascade()
+                            )
+                    )
+            );
+
+
+            for (Column column : table.getChangeColumns()) {
+                if (column.getType().isPresent()) {
+                    database.alterTable(table.getTableName())
+                            .alterColumn(column.getColumnName())
+                            .changeType(
+                                    column.getType().get(),
+                                    new ChangeTypeOptions(
+                                            column.getAutoIncrement(),
+                                            column.getSize()
+                                    )
+                            );
+                }
+
+                if (column.getDefaultValue().isPresent()) {
+                    database.alterTable(table.getTableName())
+                            .alterColumn(column.getColumnName())
+                            .setDefault(column.getDefaultValue().get());
+                }
+            }
+
+            // Make sure renames always happens last
+            // Otherwise alterColumnType and alterColumnDefault will break
+            for (Column column : table.getChangeColumns()) {
+                if (column.getRename().isPresent()) {
+                    database.alterTable(table.getTableName())
+                            .alterColumn(column.getColumnName())
+                            .rename(column.getRename().get());
+                }
+            }
+        });
     }
 
     private Collection<ColumnOptions> getColumnOptionsFromNewColumns(Table table) {

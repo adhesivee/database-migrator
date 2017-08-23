@@ -16,16 +16,11 @@ public class Selector {
     public Database loadFromConnection(Connection connection) {
         try {
             switch (connection.getMetaData().getDatabaseProductName()) {
-                case DERBY_PRODUCT_NAME:
-                    return new DerbyDatabase(connection);
-                case H2_PRODUCT_NAME:
-                    return new H2Database(connection);
-                case MYSQL_PRODUCT_NAME:
-                    return new MySQLDatabase(connection);
-                case HSQL_PRODUCT_NAME:
-                    return new HyperSQLDatabase(connection);
-                case POSTGRES_PRODUCT_NAME:
-                    return new PostgresDatabase(connection);
+                case DERBY_PRODUCT_NAME: return new DerbyDatabase(connection);
+                case H2_PRODUCT_NAME: return new H2Database(connection);
+                case MYSQL_PRODUCT_NAME: return new MySQLDatabase(connection);
+                case HSQL_PRODUCT_NAME: return new HyperSQLDatabase(connection);
+                case POSTGRES_PRODUCT_NAME: return new PostgresDatabase(connection);
             }
         } catch (SQLException e) {
             e.printStackTrace();

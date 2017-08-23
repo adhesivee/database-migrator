@@ -1,7 +1,8 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.PostgresDatabase;
+import nl.myndocs.database.migrator.database.DerbyDatabase;
 import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.database.PostgresDatabase;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
 import org.jboss.arquillian.junit.Arquillian;
@@ -31,7 +32,6 @@ public class PostgresTest extends BaseIntegration {
         String containerHost = postgresContainer.getIpAddress();
         int containerPort = postgresContainer.getBindPort(5432);
 
-        System.out.println("Connecting to database... " + containerHost + ":" + containerPort);
         return acquireConnection(
                 "jdbc:postgresql://" + containerHost + ":" + containerPort + "/postgres?loggerLevel=OFF",
                 "postgres",

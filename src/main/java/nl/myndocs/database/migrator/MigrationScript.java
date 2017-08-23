@@ -7,7 +7,8 @@ import java.sql.Connection;
 /**
  * Created by albert on 19-8-2017.
  */
-@FunctionalInterface
 public interface MigrationScript {
-    Migration migrate(Connection connection);
+    String migrationId();
+
+    void migrate(Migration migration);
 }

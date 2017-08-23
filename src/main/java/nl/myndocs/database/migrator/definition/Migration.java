@@ -1,54 +1,38 @@
 package nl.myndocs.database.migrator.definition;
 
+import nl.myndocs.database.migrator.database.query.Database;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Created by albert on 13-8-2017.
  */
 public class Migration {
-    private String migrationId;
-    private List<Table> tables = new ArrayList<>();
+    private final String migrationId;
+    private final Database database;
+    private final Consumer<Table> tableConsumer;
 
-    private Migration(Builder builder) {
-        builder.getTables()
-                .forEach(table -> tables.add(table.build()));
+    public Migration(
+            String migrationId,
+            Database database,
+            Consumer<Table> tableConsumer
+    ) {
+        this.migrationId = migrationId;
+        this.database = database;
+        this.tableConsumer = tableConsumer;
+    }
 
-        migrationId = builder.getMigrationId();
+    public Table.Builder table(String tableName) {
+        return new Table.Builder(tableName, tableConsumer);
     }
 
     public String getMigrationId() {
         return migrationId;
     }
 
-    public List<Table> getTables() {
-        return tables;
-    }
-
-    public static class Builder {
-        private final String migrationId;
-        private List<Table.Builder> tables = new ArrayList<>();
-
-        public Builder(String migrationId) {
-            this.migrationId = migrationId;
-        }
-
-        public Table.Builder table(String tableName) {
-            Table.Builder builder = new Table.Builder(tableName);
-            tables.add(builder);
-            return builder;
-        }
-
-        public List<Table.Builder> getTables() {
-            return tables;
-        }
-
-        public String getMigrationId() {
-            return migrationId;
-        }
-
-        public Migration build() {
-            return new Migration(this);
-        }
+    public Database getDatabase() {
+        return database;
     }
 }

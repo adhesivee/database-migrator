@@ -32,51 +32,83 @@ This is only meant for simple database structures. It will not support database 
 - CASCADE
                 
 ## Examples
-
-### Create table
+### Migrations 
+#### Creating migration script
 ```java
-Migration.Builder builder = new Migration.Builder("migration-id");
+public class FirstMigrationScript implements MigrationScript {
+    @Override
+    public String migrationId() {
+        // Make sure the id is unique over all the migration scripts
+        return "MIGRATION-1";
+    }
 
-builder.table("some_table")
-    .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-    .addColumn("name", Column.TYPE.VARCHAR);
+    @Override
+    public void migrate(Migration migration) {
+        migration.table("some_table")
+            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+            .addColumn("name", Column.TYPE.VARCHAR)
+            .save();
+    }
+}
+```
+#### Bootstrapping
+```java
+// Get the JDBC connection
+Connection connection = ...;
+Database database =  Selector().loadFromConnection(connection);
+Migrator migration = new Migrator(database);
+migration.migrate(
+        new FirstMigrationScript(),
+        new SecondMigrationScript()
+)
 ```
 
-### Create table with foreign keys
-```java
-Migration.Builder builder = new Migration.Builder("migration-id");
+Migrations will be executed in the same order on how it is passed to `.migrate()`
 
-builder.table("some_other_table")
+### Migration capabilities
+#### Create table
+```java
+migration.table("some_table")
+    .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+    .addColumn("name", Column.TYPE.VARCHAR)
+    .save();
+```
+
+#### Create table with foreign keys
+```java
+migration.table("some_other_table")
     .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
     .addColumn("some_table_id", Column.TYPE.INTEGER)
     .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
         key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
         key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
-    });
+    })
+    .save();
 ```
 
-### Rename column
+#### Rename column
 ```java
-Migration.Builder builder = new Migration.Builder("migration-id");
-
-builder.table("some_table")
-    .changeColumn("name", column -> column.rename("renamed"));
+migration.table("some_table")
+    .changeColumn("name", column -> column.rename("renamed"))
+    .save();
 ```
 
-### Change column type
+#### Change column type
 ```java
-Migration.Builder builder = new Migration.Builder("migration-id");
-
-builder.table("some_table")
+migration.table("some_table")
     .changeColumn("name", column -> column.type(Column.TYPE.VARCHAR));
 ```
 
-### Column type size
+#### Column type size
 ```java
-Migration.Builder builder = new Migration.Builder("migration-id");
-
-builder.table("some_table")
+migration.table("some_table")
     .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(25));
+```
+
+### Getting the JDBC connection
+```java
+// Do not close the connection!
+Connection connection = migration.getDatabase().getConnection();
 ```
 
 ## Requirements

@@ -83,6 +83,7 @@ public class Table {
 
     public static class Builder {
         private String tableName;
+        private final Consumer<Table> tableConsumer;
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> changeColumns = new ArrayList<>();
         private Collection<ForeignKey.Builder> newForeignKeys = new ArrayList<>();
@@ -91,8 +92,9 @@ public class Table {
         private Collection<String> dropColumns = new ArrayList<>();
         private Collection<String> dropConstraints = new ArrayList<>();
 
-        public Builder(String tableName) {
+        public Builder(String tableName, Consumer<Table> tableConsumer) {
             this.tableName = tableName;
+            this.tableConsumer = tableConsumer;
         }
 
         private Column.Builder addNewColumn(String columnName, Column.TYPE type) {
@@ -235,6 +237,10 @@ public class Table {
 
         public Table build() {
             return new Table(this);
+        }
+
+        public void save() {
+            tableConsumer.accept(build());
         }
     }
 }

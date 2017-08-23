@@ -1,7 +1,8 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.HyperSQLDatabase;
+import nl.myndocs.database.migrator.database.DerbyDatabase;
 import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.database.HyperSQLDatabase;
 
 import java.sql.Connection;
 
