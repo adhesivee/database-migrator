@@ -6,7 +6,6 @@ import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
 import nl.myndocs.database.migrator.processor.Migrator;
 import org.hamcrest.Matchers;
@@ -79,6 +78,9 @@ public abstract class BaseIntegration {
                             .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))
                             .addColumn("some_uuid", Column.TYPE.UUID)
                             .addColumn("change_type", Column.TYPE.UUID)
+                            .addColumn("test_date", Column.TYPE.DATE)
+                            .addColumn("test_time", Column.TYPE.TIME)
+                            .addColumn("test_timestamp", Column.TYPE.TIMESTAMP)
                             .save();
 
                     migration.table("some_other_table")

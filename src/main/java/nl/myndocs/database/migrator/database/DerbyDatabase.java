@@ -63,7 +63,7 @@ public class DerbyDatabase extends DefaultDatabase {
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(254));
         }
 
-        throw new RuntimeException("Unknown type");
+        return super.getNativeColumnDefinition(columnType);
     }
 
     @Override

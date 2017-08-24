@@ -7,7 +7,7 @@ import java.util.Optional;
  */
 public class Column {
     public enum TYPE {
-        INTEGER, CHAR, VARCHAR, UUID
+        INTEGER, CHAR, VARCHAR, UUID, DATE, TIME, TIMESTAMP
     }
 
     private String columnName;

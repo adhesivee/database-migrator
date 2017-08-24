@@ -7,6 +7,14 @@ The goals of this project:
 
 This is only meant for simple database structures. It will not support database views, functions or procedures.
 
+## Maven
+```xml
+<dependency>
+    <groupId>nl.myndocs</groupId>
+    <artifactId>database-migrator</artifactId>
+    <version>1.0.0-beta2</version>
+</dependency>
+```
 ## Features
 ### Supported databases
 
@@ -22,6 +30,9 @@ This is only meant for simple database structures. It will not support database 
 - CHAR
 - INT 
 - UUID
+- DATE
+- TIME
+- TIMESTAMP
 
 ### Supported cascading types
 
