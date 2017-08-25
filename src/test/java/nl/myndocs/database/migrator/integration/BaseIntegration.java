@@ -121,33 +121,37 @@ public abstract class BaseIntegration {
         }
     }
 
-    // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
-    @Test(expected = Exception.class)
+    @Test
     public void testForeignKeyConstraint() throws Exception {
-        SimpleMigrationScript migrationScript = new SimpleMigrationScript(
-                "migration-1",
-                migration -> {
+        try {
+            SimpleMigrationScript migrationScript = new SimpleMigrationScript(
+                    "migration-1",
+                    migration -> {
 
-                    migration.table("some_foreign_table")
-                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                            .addColumn("name", Column.TYPE.VARCHAR)
-                            .save();
+                        migration.table("some_foreign_table")
+                                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                                .addColumn("name", Column.TYPE.VARCHAR)
+                                .save();
 
-                    migration.table("some_foreign_other_table")
-                            .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
-                            .addColumn("some_table_id", Column.TYPE.INTEGER)
-                            .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
-                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
-                            })
-                            .save();
-                });
+                        migration.table("some_foreign_other_table")
+                                .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                                .addColumn("some_table_id", Column.TYPE.INTEGER)
+                                .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
+                                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
+                                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                                })
+                                .save();
+                    });
 
-        getMigrator().migrate(migrationScript);
+            getMigrator().migrate(migrationScript);
 
-        Statement statement = getConnection().createStatement();
-        statement.execute("INSERT INTO some_foreign_other_table (some_table_id) VALUES (1)");
-        statement.close();
+            Statement statement = getConnection().createStatement();
+            statement.execute("INSERT INTO some_foreign_other_table (some_table_id) VALUES (1)");
+            statement.close();
+
+            fail("Exception should occur");
+        } catch (Exception exception) {
+        }
     }
 
     @Test
@@ -225,7 +229,7 @@ public abstract class BaseIntegration {
             statement.execute("INSERT INTO some_add_unique_table (name) VALUES ('test1')");
             fail("This should no succeed");
         } catch (Exception exception) {
-            // @TODO: H2 and Postgres are not throwing SQLIntegrityConstraintViolationException
+            assertTrue(isConstraintViolationException(exception));
         }
 
         statement.close();
@@ -465,4 +469,6 @@ public abstract class BaseIntegration {
     protected abstract Connection getConnection() throws ClassNotFoundException;
 
     protected abstract Class<? extends Database> expectedDatabaseClass();
+
+    protected abstract boolean isConstraintViolationException(Exception exception);
 }

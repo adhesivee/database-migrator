@@ -1,14 +1,14 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.DerbyDatabase;
-import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.MySQLDatabase;
+import nl.myndocs.database.migrator.database.query.Database;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.Container;
 import org.arquillian.cube.docker.impl.client.containerobject.dsl.DockerContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.junit.runner.RunWith;
 
 import java.sql.Connection;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
  * Created by albert on 14-8-2017.
@@ -40,5 +40,10 @@ public class MysqlTest extends BaseIntegration {
                 "root",
                 "root"
         );
+    }
+
+    @Override
+    protected boolean isConstraintViolationException(Exception exception) {
+        return exception instanceof SQLIntegrityConstraintViolationException;
     }
 }

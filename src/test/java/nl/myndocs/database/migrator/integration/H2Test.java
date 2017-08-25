@@ -1,8 +1,7 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.DerbyDatabase;
-import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.H2Database;
+import nl.myndocs.database.migrator.database.query.Database;
 
 import java.sql.Connection;
 
@@ -25,5 +24,11 @@ public class H2Test extends BaseIntegration {
                 "",
                 ""
         );
+    }
+
+    @Override
+    protected boolean isConstraintViolationException(Exception exception) {
+        exception.printStackTrace();
+        return exception.getMessage().startsWith("Unique index or primary key violation");
     }
 }

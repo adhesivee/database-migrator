@@ -1,10 +1,10 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.database.DerbyDatabase;
-import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.database.HyperSQLDatabase;
+import nl.myndocs.database.migrator.database.query.Database;
 
 import java.sql.Connection;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 /**
  * Created by albert on 15-8-2017.
@@ -26,4 +26,8 @@ public class HypersqlTest extends BaseIntegration {
 
     }
 
+    @Override
+    protected boolean isConstraintViolationException(Exception exception) {
+        return exception instanceof SQLIntegrityConstraintViolationException;
+    }
 }
