@@ -419,7 +419,7 @@ public abstract class BaseIntegration {
                 "migration-2",
                 migration -> {
                     migration.table("test_change_default_table")
-                            .changeColumn("name", column -> column.defaultValue("changed-value"))
+                            .changeColumn("name", column -> column.defaultValue("changed-value\\'"))
                             .save();
                 }
         );
@@ -436,7 +436,7 @@ public abstract class BaseIntegration {
         ResultSet resultSet = statement.getResultSet();
         assertTrue(resultSet.next());
         String defaultValue = resultSet.getString(1);
-        assertEquals("changed-value", defaultValue);
+        assertEquals("changed-value\\'", defaultValue);
 
         statement.close();
 

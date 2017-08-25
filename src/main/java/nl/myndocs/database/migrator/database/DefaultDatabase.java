@@ -48,7 +48,6 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     @Override
     public void setDefault(String defaultValue) {
-        // @TODO Should be quoted properly
         String queryFormat = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT '%s'";
 
         executeInStatement(
@@ -56,9 +55,13 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
                         queryFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        defaultValue
+                        escapeString(defaultValue)
                 )
         );
+    }
+
+    protected String escapeString(String line) {
+        return line.replaceAll("'", "''");
     }
 
     @Override

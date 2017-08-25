@@ -38,6 +38,13 @@ public class MySQLDatabase extends DefaultDatabase {
     }
 
     @Override
+    protected String escapeString(String line) {
+        String escapedLine = line.replaceAll("\\\\", "\\\\\\\\");
+
+        return super.escapeString(escapedLine);
+    }
+
+    @Override
     public void dropConstraint(String constraintName) {
         String dropConstraintFormat = "ALTER TABLE %s DROP INDEX %s";
 
