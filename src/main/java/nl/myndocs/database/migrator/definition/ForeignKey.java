@@ -4,7 +4,6 @@ import nl.myndocs.database.migrator.util.Assert;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 
 /**
  * Created by albert on 13-8-2017.
@@ -46,12 +45,12 @@ public class ForeignKey {
         return foreignKeys;
     }
 
-    public Optional<CASCADE> getUpdateCascade() {
-        return Optional.ofNullable(updateCascade);
+    public CASCADE getUpdateCascade() {
+        return updateCascade;
     }
 
-    public Optional<CASCADE> getDeleteCascade() {
-        return Optional.ofNullable(deleteCascade);
+    public CASCADE getDeleteCascade() {
+        return deleteCascade;
     }
 
     public String getConstraintName() {

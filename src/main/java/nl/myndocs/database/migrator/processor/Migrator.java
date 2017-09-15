@@ -82,7 +82,7 @@ public class Migrator {
                     database.alterTable(table.getTableName()).addConstraint(
                             constraint.getConstraintName(),
                             constraint.getColumnNames(),
-                            constraint.getType().get()
+                            constraint.getType()
                     )
             );
             table.getDropConstraints().forEach(constraintName -> database.alterTable(table.getTableName()).dropConstraint(constraintName));
@@ -93,40 +93,40 @@ public class Migrator {
                             foreignKey.getLocalKeys(),
                             foreignKey.getForeignKeys(),
                             new ForeignKeyOptions(
-                                    foreignKey.getDeleteCascade().orElse(null),
-                                    foreignKey.getUpdateCascade().orElse(null)
+                                    foreignKey.getDeleteCascade(),
+                                    foreignKey.getUpdateCascade()
                             )
                     )
             );
 
 
             for (Column column : table.getChangeColumns()) {
-                if (column.getType().isPresent()) {
+                if (column.getType() != null) {
                     database.alterTable(table.getTableName())
                             .alterColumn(column.getColumnName())
                             .changeType(
-                                    column.getType().get(),
+                                    column.getType(),
                                     new ChangeTypeOptions(
-                                            column.getAutoIncrement().orElse(null),
-                                            column.getSize().orElse(null)
+                                            column.getAutoIncrement(),
+                                            column.getSize()
                                     )
                             );
                 }
 
-                if (column.getDefaultValue().isPresent()) {
+                if (column.getDefaultValue() != null) {
                     database.alterTable(table.getTableName())
                             .alterColumn(column.getColumnName())
-                            .setDefault(column.getDefaultValue().get());
+                            .setDefault(column.getDefaultValue());
                 }
             }
 
             // Make sure renames always happens last
             // Otherwise alterColumnType and alterColumnDefault will break
             for (Column column : table.getChangeColumns()) {
-                if (column.getRename().isPresent()) {
+                if (column.getRename() != null) {
                     database.alterTable(table.getTableName())
                             .alterColumn(column.getColumnName())
-                            .rename(column.getRename().get());
+                            .rename(column.getRename());
                 }
             }
         });
@@ -140,12 +140,12 @@ public class Migrator {
                     new ColumnOptions.Builder
                             (
                                     column.getColumnName(),
-                                    column.getType().get()
-                            ).setAutoIncrement(column.getAutoIncrement().orElse(null))
-                            .setColumnSize(column.getSize().orElse(null))
-                            .setDefaultValue(column.getDefaultValue().orElse(null))
-                            .setNotNull(column.getIsNotNull().orElse(null))
-                            .setPrimary(column.getPrimary().orElse(null))
+                                    column.getType()
+                            ).setAutoIncrement(column.getAutoIncrement())
+                            .setColumnSize(column.getSize())
+                            .setDefaultValue(column.getDefaultValue())
+                            .setNotNull(column.getIsNotNull())
+                            .setPrimary(column.getPrimary())
                             .build()
             );
         }

@@ -2,8 +2,6 @@ package nl.myndocs.database.migrator.definition;
 
 import nl.myndocs.database.migrator.util.Assert;
 
-import java.util.Optional;
-
 /**
  * Created by albert on 13-8-2017.
  */
@@ -36,32 +34,32 @@ public class Column {
         return columnName;
     }
 
-    public Optional<Boolean> getPrimary() {
-        return Optional.ofNullable(primary);
+    public Boolean getPrimary() {
+        return primary;
     }
 
-    public Optional<String> getRename() {
-        return Optional.ofNullable(rename);
+    public String getRename() {
+        return rename;
     }
 
-    public Optional<Boolean> getAutoIncrement() {
-        return Optional.ofNullable(autoIncrement);
+    public Boolean getAutoIncrement() {
+        return autoIncrement;
     }
 
-    public Optional<Boolean> getIsNotNull() {
-        return Optional.ofNullable(isNotNull);
+    public Boolean getIsNotNull() {
+        return isNotNull;
     }
 
-    public Optional<TYPE> getType() {
-        return Optional.ofNullable(type);
+    public TYPE getType() {
+        return type;
     }
 
-    public Optional<Integer> getSize() {
-        return Optional.ofNullable(size);
+    public Integer getSize() {
+        return size;
     }
 
-    public Optional<String> getDefaultValue() {
-        return Optional.ofNullable(defaultValue);
+    public String getDefaultValue() {
+        return defaultValue;
     }
 
     public static class Builder {

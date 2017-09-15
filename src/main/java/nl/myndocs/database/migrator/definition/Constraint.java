@@ -5,7 +5,6 @@ import nl.myndocs.database.migrator.util.Assert;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 
 public class Constraint {
     public enum TYPE {
@@ -26,8 +25,8 @@ public class Constraint {
         return constraintName;
     }
 
-    public Optional<TYPE> getType() {
-        return Optional.ofNullable(type);
+    public TYPE getType() {
+        return type;
     }
 
     public Collection<String> getColumnNames() {
