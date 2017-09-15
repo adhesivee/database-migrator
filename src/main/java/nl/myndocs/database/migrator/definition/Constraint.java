@@ -1,5 +1,7 @@
 package nl.myndocs.database.migrator.definition;
 
+import nl.myndocs.database.migrator.util.Assert;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,6 +40,10 @@ public class Constraint {
         private Collection<String> columnNames = new ArrayList<>();
 
         public Builder(String constraintName, TYPE type, Collection<String> columnNames) {
+            Assert.notNull(constraintName, "constraintName must not be null");
+            Assert.notNull(type, "type must not be null");
+            Assert.notNull(columnNames, "columnNames must not be null");
+
             this.constraintName = constraintName;
             this.type = type;
             this.columnNames = columnNames;

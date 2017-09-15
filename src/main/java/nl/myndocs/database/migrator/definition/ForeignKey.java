@@ -1,5 +1,7 @@
 package nl.myndocs.database.migrator.definition;
 
+import nl.myndocs.database.migrator.util.Assert;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
@@ -65,6 +67,11 @@ public class ForeignKey {
         private CASCADE updateCascade;
 
         public Builder(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
+            Assert.notNull(constraintName, "constraintName must not be null");
+            Assert.notNull(foreignTable, "foreignTable must not be null");
+            Assert.notNull(localKeys, "localKeys must not be null");
+            Assert.notNull(foreignKeys, "foreignKeys must not be null");
+
             this.constraintName = constraintName;
             this.foreignTable = foreignTable;
             this.localKeys = localKeys;

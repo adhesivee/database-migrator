@@ -1,5 +1,7 @@
 package nl.myndocs.database.migrator.definition;
 
+import nl.myndocs.database.migrator.util.Assert;
+
 import java.util.Optional;
 
 /**
@@ -73,9 +75,8 @@ public class Column {
         private String rename;
 
         public Builder(String columnName, Column.TYPE type) {
-            if (columnName == null || type == null) {
-                throw new IllegalArgumentException("Parameter should not be null");
-            }
+            Assert.notNull(columnName, "columnName must not be null");
+            Assert.notNull(type, "type must not be null");
 
             this.columnName = columnName;
             this.type = type;

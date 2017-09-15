@@ -1,9 +1,8 @@
 package nl.myndocs.database.migrator.definition;
 
 import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.util.Assert;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -19,12 +18,17 @@ public class Migration {
             Database database,
             Consumer<Table> tableConsumer
     ) {
+        Assert.notNull(migrationId, "migrationId must not be null");
+        Assert.notNull(database, "database must not be null");
+        Assert.notNull(tableConsumer, "tableConsumer must not be null");
+
         this.migrationId = migrationId;
         this.database = database;
         this.tableConsumer = tableConsumer;
     }
 
     public Table.Builder table(String tableName) {
+        Assert.notNull(tableName, "tableName must not be null");
         return new Table.Builder(tableName, tableConsumer);
     }
 
