@@ -22,7 +22,7 @@ public class PostgresDatabase extends DefaultDatabase {
                         alterTypeFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        getNativeColumnDefinition(type, ChangeTypeOptions.empty())
+                        getNativeColumnDefinition(type, new ChangeTypeOptions())
                 )
         );
     }
@@ -44,7 +44,7 @@ public class PostgresDatabase extends DefaultDatabase {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
+                getNativeColumnDefinition(columnType, new ChangeTypeOptions());
         }
 
         return super.getNativeColumnDefinition(columnType);

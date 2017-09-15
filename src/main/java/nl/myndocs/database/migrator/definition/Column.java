@@ -11,13 +11,13 @@ public class Column {
     }
 
     private String columnName;
-    private Optional<Boolean> primary;
-    private Optional<Boolean> autoIncrement;
-    private Optional<Boolean> isNotNull;
-    private Optional<TYPE> type;
-    private Optional<Integer> size;
-    private Optional<String> defaultValue;
-    private Optional<String> rename;
+    private Boolean primary;
+    private Boolean autoIncrement;
+    private Boolean isNotNull;
+    private TYPE type;
+    private Integer size;
+    private String defaultValue;
+    private String rename;
 
     private Column(Builder builder) {
         columnName = builder.getColumnName();
@@ -35,46 +35,50 @@ public class Column {
     }
 
     public Optional<Boolean> getPrimary() {
-        return primary;
+        return Optional.ofNullable(primary);
     }
 
     public Optional<String> getRename() {
-        return rename;
+        return Optional.ofNullable(rename);
     }
 
     public Optional<Boolean> getAutoIncrement() {
-        return autoIncrement;
+        return Optional.ofNullable(autoIncrement);
     }
 
     public Optional<Boolean> getIsNotNull() {
-        return isNotNull;
+        return Optional.ofNullable(isNotNull);
     }
 
     public Optional<TYPE> getType() {
-        return type;
+        return Optional.ofNullable(type);
     }
 
     public Optional<Integer> getSize() {
-        return size;
+        return Optional.ofNullable(size);
     }
 
     public Optional<String> getDefaultValue() {
-        return defaultValue;
+        return Optional.ofNullable(defaultValue);
     }
 
     public static class Builder {
         private String columnName;
-        private Optional<Boolean> primary = Optional.empty();
-        private Optional<Boolean> autoIncrement = Optional.empty();
-        private Optional<TYPE> type = Optional.empty();
-        private Optional<Boolean> notNull = Optional.empty();
-        private Optional<Integer> size = Optional.empty();
-        private Optional<String> defaultValue = Optional.empty();
-        private Optional<String> rename = Optional.empty();
+        private Boolean primary;
+        private Boolean autoIncrement;
+        private TYPE type;
+        private Boolean notNull;
+        private Integer size;
+        private String defaultValue;
+        private String rename;
 
         public Builder(String columnName, Column.TYPE type) {
+            if (columnName == null || type == null) {
+                throw new IllegalArgumentException("Parameter should not be null");
+            }
+
             this.columnName = columnName;
-            this.type = Optional.of(type);
+            this.type = type;
         }
 
         public Builder(String columnName) {
@@ -82,43 +86,43 @@ public class Column {
         }
 
         public Builder rename(String name) {
-            rename = Optional.ofNullable(name);
+            rename = name;
 
             return this;
         }
 
         public Builder type(Column.TYPE type) {
-            this.type = Optional.ofNullable(type);
+            this.type = type;
 
             return this;
         }
 
         public Builder primary(Boolean primary) {
-            this.primary = Optional.ofNullable(primary);
+            this.primary = primary;
 
             return this;
         }
 
         public Builder autoIncrement(Boolean autoIncrement) {
-            this.autoIncrement = Optional.ofNullable(autoIncrement);
+            this.autoIncrement = autoIncrement;
 
             return this;
         }
 
         public Builder defaultValue(String value) {
-            this.defaultValue = Optional.ofNullable(value);
+            this.defaultValue = value;
 
             return this;
         }
 
         public Builder size(Integer size) {
-            this.size = Optional.ofNullable(size);
+            this.size = size;
 
             return this;
         }
 
         public Builder notNull(Boolean notNull) {
-            this.notNull = Optional.ofNullable(notNull);
+            this.notNull = notNull;
 
             return this;
         }
@@ -127,31 +131,31 @@ public class Column {
             return columnName;
         }
 
-        public Optional<String> getRename() {
+        public String getRename() {
             return rename;
         }
 
-        public Optional<Boolean> getPrimary() {
+        public Boolean getPrimary() {
             return primary;
         }
 
-        public Optional<Boolean> getAutoIncrement() {
+        public Boolean getAutoIncrement() {
             return autoIncrement;
         }
 
-        public Optional<TYPE> getType() {
+        public TYPE getType() {
             return type;
         }
 
-        public Optional<Boolean> getNotNull() {
+        public Boolean getNotNull() {
             return notNull;
         }
 
-        public Optional<Integer> getSize() {
+        public Integer getSize() {
             return size;
         }
 
-        public Optional<String> getDefaultValue() {
+        public String getDefaultValue() {
             return defaultValue;
         }
 

@@ -97,8 +97,8 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
                 getNativeColumnDefinition(
                         columnOption.getColumnType(),
                         new ChangeTypeOptions(
-                                columnOption.getAutoIncrement(),
-                                columnOption.getColumnSize()
+                                columnOption.getAutoIncrement().orElse(null),
+                                columnOption.getColumnSize().orElse(null)
                         )
                 ) + " " +
                 (columnOption.getDefaultValue().isPresent() ? getDefaultValue(columnOption.getColumnType(), columnOption.getDefaultValue().get()) : "") + " " +

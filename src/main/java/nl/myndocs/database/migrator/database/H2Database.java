@@ -18,7 +18,7 @@ public class H2Database extends DefaultDatabase {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
+                return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
             case CHAR:
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));

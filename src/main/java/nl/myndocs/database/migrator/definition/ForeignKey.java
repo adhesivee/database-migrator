@@ -16,8 +16,8 @@ public class ForeignKey {
     private String foreignTable;
     private Collection<String> localKeys;
     private Collection<String> foreignKeys;
-    private Optional<CASCADE> updateCascade = Optional.empty();
-    private Optional<CASCADE> deleteCascade = Optional.empty();
+    private CASCADE updateCascade;
+    private CASCADE deleteCascade;
 
     private ForeignKey(Builder builder) {
         if (builder.getLocalKeys().size() != builder.getForeignKeys().size()) {
@@ -45,11 +45,11 @@ public class ForeignKey {
     }
 
     public Optional<CASCADE> getUpdateCascade() {
-        return updateCascade;
+        return Optional.ofNullable(updateCascade);
     }
 
     public Optional<CASCADE> getDeleteCascade() {
-        return deleteCascade;
+        return Optional.ofNullable(deleteCascade);
     }
 
     public String getConstraintName() {
@@ -61,8 +61,8 @@ public class ForeignKey {
         private String foreignTable;
         private Collection<String> localKeys;
         private Collection<String> foreignKeys;
-        private Optional<CASCADE> deleteCascade;
-        private Optional<CASCADE> updateCascade;
+        private CASCADE deleteCascade;
+        private CASCADE updateCascade;
 
         public Builder(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
             this.constraintName = constraintName;
@@ -76,13 +76,13 @@ public class ForeignKey {
         }
 
         public Builder cascadeDelete(CASCADE cascade) {
-            deleteCascade = Optional.ofNullable(cascade);
+            deleteCascade = cascade;
 
             return this;
         }
 
         public Builder cascadeUpdate(CASCADE cascade) {
-            updateCascade = Optional.ofNullable(cascade);
+            updateCascade = cascade;
 
             return this;
         }
@@ -99,11 +99,11 @@ public class ForeignKey {
             return foreignKeys;
         }
 
-        public Optional<CASCADE> getDeleteCascade() {
+        public CASCADE getDeleteCascade() {
             return deleteCascade;
         }
 
-        public Optional<CASCADE> getUpdateCascade() {
+        public CASCADE getUpdateCascade() {
             return updateCascade;
         }
 

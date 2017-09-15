@@ -19,7 +19,7 @@ public class HyperSQLDatabase extends DefaultDatabase {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
+                getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
             case CHAR:
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));

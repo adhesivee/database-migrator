@@ -10,20 +10,20 @@ import java.util.Optional;
 public class ColumnOptions {
     private final String columnName;
     private final Column.TYPE columnType;
-    private final Optional<Boolean> autoIncrement;
-    private final Optional<Integer> columnSize;
-    private final Optional<String> defaultValue;
-    private final Optional<Boolean> isNotNull;
-    private final Optional<Boolean> isPrimary;
+    private final Boolean autoIncrement;
+    private final Integer columnSize;
+    private final String defaultValue;
+    private final Boolean isNotNull;
+    private final Boolean isPrimary;
 
-    public ColumnOptions(String columnName, Column.TYPE columnType, Optional<Boolean> autoIncrement, Optional<Integer> columnSize, Optional<String> defaultValue, Optional<Boolean> isNotNull, Optional<Boolean> isPrimary) {
-        this.columnName = columnName;
-        this.columnType = columnType;
-        this.autoIncrement = autoIncrement;
-        this.columnSize = columnSize;
-        this.defaultValue = defaultValue;
-        this.isNotNull = isNotNull;
-        this.isPrimary = isPrimary;
+    private ColumnOptions(Builder builder) {
+        columnName = builder.getColumnName();
+        columnType = builder.getColumnTyoe();
+        autoIncrement = builder.getAutoIncrement();
+        columnSize = builder.getColumnSize();
+        defaultValue = builder.getDefaultValue();
+        isNotNull = builder.getNotNull();
+        isPrimary = builder.getPrimary();
     }
 
     public String getColumnName() {
@@ -35,22 +35,99 @@ public class ColumnOptions {
     }
 
     public Optional<Boolean> getAutoIncrement() {
-        return autoIncrement;
+        return Optional.ofNullable(autoIncrement);
     }
 
     public Optional<Integer> getColumnSize() {
-        return columnSize;
+        return Optional.ofNullable(columnSize);
     }
 
     public Optional<String> getDefaultValue() {
-        return defaultValue;
+        return Optional.ofNullable(defaultValue);
     }
 
     public Optional<Boolean> getIsNotNull() {
-        return isNotNull;
+        return Optional.ofNullable(isNotNull);
     }
 
     public Optional<Boolean> getIsPrimary() {
-        return isPrimary;
+        return Optional.ofNullable(isPrimary);
+    }
+
+    public static class Builder {
+        private final String columnName;
+        private final Column.TYPE columnTyoe;
+        private Boolean autoIncrement;
+        private Integer columnSize;
+        private String defaultValue;
+        private Boolean isNotNull;
+        private Boolean isPrimary;
+
+        public Builder(String columnName, Column.TYPE columnTyoe) {
+            this.columnName = columnName;
+            this.columnTyoe = columnTyoe;
+        }
+
+        public String getColumnName() {
+            return columnName;
+        }
+
+        public Column.TYPE getColumnTyoe() {
+            return columnTyoe;
+        }
+
+        public Boolean getAutoIncrement() {
+            return autoIncrement;
+        }
+
+        public Builder setAutoIncrement(Boolean autoIncrement) {
+            this.autoIncrement = autoIncrement;
+
+            return this;
+        }
+
+        public Integer getColumnSize() {
+            return columnSize;
+        }
+
+        public Builder setColumnSize(Integer columnSize) {
+            this.columnSize = columnSize;
+
+            return this;
+        }
+
+        public String getDefaultValue() {
+            return defaultValue;
+        }
+
+        public Builder setDefaultValue(String defaultValue) {
+            this.defaultValue = defaultValue;
+
+            return this;
+        }
+
+        public Boolean getNotNull() {
+            return isNotNull;
+        }
+
+        public Builder setNotNull(Boolean notNull) {
+            isNotNull = notNull;
+
+            return this;
+        }
+
+        public Boolean getPrimary() {
+            return isPrimary;
+        }
+
+        public Builder setPrimary(Boolean primary) {
+            isPrimary = primary;
+
+            return this;
+        }
+
+        public ColumnOptions build() {
+            return new ColumnOptions(this);
+        }
     }
 }

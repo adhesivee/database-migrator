@@ -11,7 +11,7 @@ public class Constraint {
     }
 
     private String constraintName;
-    private Optional<TYPE> type;
+    private TYPE type;
     private Collection<String> columnNames = new ArrayList<>();
 
     private Constraint(Builder builder) {
@@ -25,7 +25,7 @@ public class Constraint {
     }
 
     public Optional<TYPE> getType() {
-        return type;
+        return Optional.ofNullable(type);
     }
 
     public Collection<String> getColumnNames() {
@@ -34,12 +34,12 @@ public class Constraint {
 
     public static class Builder {
         private String constraintName;
-        private Optional<TYPE> type;
+        private TYPE type;
         private Collection<String> columnNames = new ArrayList<>();
 
         public Builder(String constraintName, TYPE type, Collection<String> columnNames) {
             this.constraintName = constraintName;
-            this.type = Optional.ofNullable(type);
+            this.type = type;
             this.columnNames = columnNames;
         }
 
@@ -53,7 +53,7 @@ public class Constraint {
             return constraintName;
         }
 
-        public Optional<TYPE> getType() {
+        public TYPE getType() {
             return type;
         }
 

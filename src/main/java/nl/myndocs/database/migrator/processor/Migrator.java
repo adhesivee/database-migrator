@@ -93,8 +93,8 @@ public class Migrator {
                             foreignKey.getLocalKeys(),
                             foreignKey.getForeignKeys(),
                             new ForeignKeyOptions(
-                                    foreignKey.getDeleteCascade(),
-                                    foreignKey.getUpdateCascade()
+                                    foreignKey.getDeleteCascade().orElse(null),
+                                    foreignKey.getUpdateCascade().orElse(null)
                             )
                     )
             );
@@ -107,8 +107,8 @@ public class Migrator {
                             .changeType(
                                     column.getType().get(),
                                     new ChangeTypeOptions(
-                                            column.getAutoIncrement(),
-                                            column.getSize()
+                                            column.getAutoIncrement().orElse(null),
+                                            column.getSize().orElse(null)
                                     )
                             );
                 }
@@ -137,15 +137,16 @@ public class Migrator {
 
         for (Column column : table.getNewColumns()) {
             columnOptions.add(
-                    new ColumnOptions(
-                            column.getColumnName(),
-                            column.getType().get(),
-                            column.getAutoIncrement(),
-                            column.getSize(),
-                            column.getDefaultValue(),
-                            column.getIsNotNull(),
-                            column.getPrimary()
-                    )
+                    new ColumnOptions.Builder
+                            (
+                                    column.getColumnName(),
+                                    column.getType().get()
+                            ).setAutoIncrement(column.getAutoIncrement().orElse(null))
+                            .setColumnSize(column.getSize().orElse(null))
+                            .setDefaultValue(column.getDefaultValue().orElse(null))
+                            .setNotNull(column.getIsNotNull().orElse(null))
+                            .setPrimary(column.getPrimary().orElse(null))
+                            .build()
             );
         }
 

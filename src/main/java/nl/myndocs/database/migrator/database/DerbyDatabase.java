@@ -56,7 +56,7 @@ public class DerbyDatabase extends DefaultDatabase {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
+                return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
             case CHAR:

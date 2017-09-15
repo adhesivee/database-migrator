@@ -66,7 +66,7 @@ public class MySQLDatabase extends DefaultDatabase {
                         alterTypeFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        getNativeColumnDefinition(type, ChangeTypeOptions.empty())
+                        getNativeColumnDefinition(type, new ChangeTypeOptions())
                 )
         );
     }
@@ -127,7 +127,7 @@ public class MySQLDatabase extends DefaultDatabase {
         switch (columnType) {
             case INTEGER:
             case UUID:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.empty());
+                return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
             case CHAR:
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
