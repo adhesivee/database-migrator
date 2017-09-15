@@ -1,6 +1,7 @@
 package nl.myndocs.database.migrator.database.query.option;
 
 import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.util.Assert;
 
 import java.util.Optional;
 
@@ -18,7 +19,7 @@ public class ColumnOptions {
 
     private ColumnOptions(Builder builder) {
         columnName = builder.getColumnName();
-        columnType = builder.getColumnTyoe();
+        columnType = builder.getColumnType();
         autoIncrement = builder.getAutoIncrement();
         columnSize = builder.getColumnSize();
         defaultValue = builder.getDefaultValue();
@@ -56,24 +57,27 @@ public class ColumnOptions {
 
     public static class Builder {
         private final String columnName;
-        private final Column.TYPE columnTyoe;
+        private final Column.TYPE columnType;
         private Boolean autoIncrement;
         private Integer columnSize;
         private String defaultValue;
         private Boolean isNotNull;
         private Boolean isPrimary;
 
-        public Builder(String columnName, Column.TYPE columnTyoe) {
+        public Builder(String columnName, Column.TYPE columnType) {
+            Assert.notNull(columnName, "columnName must not be null");
+            Assert.notNull(columnType, "columnType must not be null");
+
             this.columnName = columnName;
-            this.columnTyoe = columnTyoe;
+            this.columnType = columnType;
         }
 
         public String getColumnName() {
             return columnName;
         }
 
-        public Column.TYPE getColumnTyoe() {
-            return columnTyoe;
+        public Column.TYPE getColumnType() {
+            return columnType;
         }
 
         public Boolean getAutoIncrement() {
