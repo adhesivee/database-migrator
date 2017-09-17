@@ -253,6 +253,12 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
     }
 
     protected String getNativeColumnDefinition(Column.TYPE columnType) {
+        switch (columnType) {
+            case SMALL_INTEGER:
+                return "SMALLINT";
+            case BIG_INTEGER:
+                return "BIGINT";
+        }
         return columnType.name();
     }
 

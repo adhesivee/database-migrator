@@ -73,6 +73,8 @@ public abstract class BaseIntegration {
                 migration -> {
                     migration.table("some_table")
                             .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("small_id", Column.TYPE.SMALL_INTEGER)
+                            .addColumn("big_id", Column.TYPE.BIG_INTEGER)
                             .addColumn("name", Column.TYPE.VARCHAR)
                             .addColumn("name_non_null", Column.TYPE.VARCHAR, column -> column.notNull(true).defaultValue("default"))
                             .addColumn("some_chars", Column.TYPE.CHAR, column -> column.size(25))

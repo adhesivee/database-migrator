@@ -12,7 +12,7 @@ This is only meant for simple database structures. It will not support database 
 <dependency>
     <groupId>nl.myndocs</groupId>
     <artifactId>database-migrator</artifactId>
-    <version>1.0.0-beta3</version>
+    <version>1.0.0-beta4</version>
 </dependency>
 ```
 ## Features
