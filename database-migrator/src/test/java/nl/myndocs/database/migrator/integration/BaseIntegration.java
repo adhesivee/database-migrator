@@ -83,6 +83,7 @@ public abstract class BaseIntegration {
                             .addColumn("test_date", Column.TYPE.DATE)
                             .addColumn("test_time", Column.TYPE.TIME)
                             .addColumn("test_timestamp", Column.TYPE.TIMESTAMP)
+                            .addColumn("test_boolean", Column.TYPE.BOOLEAN, column -> column.defaultValue("false"))
                             .save();
 
                     migration.table("some_other_table")

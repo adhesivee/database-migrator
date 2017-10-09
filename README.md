@@ -26,9 +26,12 @@ This is only meant for simple database structures. It will not support database 
 
 ### Supported column types
 
+- BOOLEAN
 - VARCHAR
 - CHAR
+- SMALLINT
 - INT 
+- BIGINT
 - UUID
 - DATE
 - TIME
