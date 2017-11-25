@@ -58,6 +58,10 @@ public class PostgresDatabase extends DefaultDatabase {
                 if (changeTypeOptions.getAutoIncrement().orElse(false)) {
                     return "BIGSERIAL";
                 }
+            case SMALL_INTEGER:
+                if (changeTypeOptions.getAutoIncrement().orElse(false)) {
+                    return "SMALLSERIAL";
+                }
             case INTEGER:
                 if (changeTypeOptions.getAutoIncrement().orElse(false)) {
                     return "SERIAL";

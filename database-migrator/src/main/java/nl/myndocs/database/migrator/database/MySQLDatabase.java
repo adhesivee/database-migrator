@@ -142,6 +142,7 @@ public class MySQLDatabase extends DefaultDatabase {
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
             case BIG_INTEGER:
+            case SMALL_INTEGER:
             case INTEGER:
                 return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
             case UUID:

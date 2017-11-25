@@ -126,11 +126,20 @@ public abstract class BaseIntegration {
 
     @Test
     public void testBigIntegerIncrement() throws Exception {
+        incrementTest("test-big-int-increment", "increment_big_integer", Column.TYPE.BIG_INTEGER);
+    }
+
+    @Test
+    public void testSmallIntegerIncrement() throws Exception {
+        incrementTest("test-small-int-increment", "increment_small_integer", Column.TYPE.SMALL_INTEGER);
+    }
+
+    private void incrementTest(String migrationId, String tableName, Column.TYPE columnType) throws Exception {
         SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
-                "test",
+                migrationId,
                 migration -> {
-                    migration.table("increment_big_integer")
-                            .addColumn("incremental", Column.TYPE.BIG_INTEGER, column -> column.primary(true).autoIncrement(true))
+                    migration.table(tableName)
+                            .addColumn("incremental", columnType, column -> column.primary(true).autoIncrement(true))
                             .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
                             .save();
                 }
@@ -139,11 +148,11 @@ public abstract class BaseIntegration {
         getMigrator().migrate(simpleMigrationScript);
 
         Statement statement = getConnection().createStatement();
-        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value1')");
-        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value2')");
-        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value3')");
+        statement.execute("INSERT INTO " + tableName + " (name) VALUES ('value1')");
+        statement.execute("INSERT INTO " + tableName + " (name) VALUES ('value2')");
+        statement.execute("INSERT INTO  " + tableName + "(name) VALUES ('value3')");
 
-        statement.execute("SELECT incremental FROM increment_big_integer ORDER BY incremental");
+        statement.execute("SELECT incremental FROM " + tableName + " ORDER BY incremental");
 
         ResultSet resultSet = statement.getResultSet();
 

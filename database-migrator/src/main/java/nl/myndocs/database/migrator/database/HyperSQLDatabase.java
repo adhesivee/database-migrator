@@ -18,6 +18,7 @@ public class HyperSQLDatabase extends DefaultDatabase {
     protected String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
             case BIG_INTEGER:
+            case SMALL_INTEGER:
             case INTEGER:
             case UUID:
                 getNativeColumnDefinition(columnType, new ChangeTypeOptions());
@@ -33,6 +34,7 @@ public class HyperSQLDatabase extends DefaultDatabase {
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
             case BIG_INTEGER:
+            case SMALL_INTEGER:
             case INTEGER:
                 return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "IDENTITY" : "");
             case UUID:
