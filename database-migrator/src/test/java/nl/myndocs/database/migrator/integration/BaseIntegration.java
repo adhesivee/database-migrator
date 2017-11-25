@@ -130,6 +130,11 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testIntegerIncrement() throws Exception {
+        incrementTest("test-int-increment", "increment_integer", Column.TYPE.INTEGER);
+    }
+
+    @Test
     public void testSmallIntegerIncrement() throws Exception {
         incrementTest("test-small-int-increment", "increment_small_integer", Column.TYPE.SMALL_INTEGER);
     }
