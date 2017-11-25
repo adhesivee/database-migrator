@@ -125,6 +125,39 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testBigIntegerIncrement() throws Exception {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test",
+                migration -> {
+                    migration.table("increment_big_integer")
+                            .addColumn("incremental", Column.TYPE.BIG_INTEGER, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value1')");
+        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value2')");
+        statement.execute("INSERT INTO increment_big_integer (name) VALUES ('value3')");
+
+        statement.execute("SELECT incremental FROM increment_big_integer ORDER BY incremental");
+
+        ResultSet resultSet = statement.getResultSet();
+
+        int lastIndex = -1;
+        while (resultSet.next()) {
+            int incremental = resultSet.getInt(1);
+            assertThat(lastIndex, Matchers.lessThan(incremental));
+
+            lastIndex = incremental;
+        }
+        statement.close();
+    }
+
+    @Test
     public void testForeignKeyConstraint() throws Exception {
         try {
             SimpleMigrationScript migrationScript = new SimpleMigrationScript(

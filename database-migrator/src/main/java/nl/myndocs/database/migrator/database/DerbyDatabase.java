@@ -54,6 +54,7 @@ public class DerbyDatabase extends DefaultDatabase {
     @Override
     public String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
             case UUID:
                 return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
@@ -69,8 +70,9 @@ public class DerbyDatabase extends DefaultDatabase {
     @Override
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
-                return "INTEGER " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)" : "");
+                return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)" : "");
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
                 return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));

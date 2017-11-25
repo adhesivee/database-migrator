@@ -125,6 +125,7 @@ public class MySQLDatabase extends DefaultDatabase {
     @Override
     public String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
             case UUID:
                 return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
@@ -140,8 +141,9 @@ public class MySQLDatabase extends DefaultDatabase {
     @Override
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
-                return "INTEGER " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
+                return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
                 return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));
