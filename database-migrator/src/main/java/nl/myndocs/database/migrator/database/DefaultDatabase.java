@@ -244,9 +244,10 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     protected String getNativeConstraintType(Constraint.TYPE type) {
         switch (type) {
+            case PRIMARY_KEY:
             case INDEX:
             case UNIQUE:
-                return type.name();
+                return type.name().replaceAll("_", " ");
         }
 
         throw new RuntimeException("Could not process native constraint type");

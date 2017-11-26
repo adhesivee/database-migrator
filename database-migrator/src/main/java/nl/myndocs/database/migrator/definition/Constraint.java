@@ -8,7 +8,7 @@ import java.util.Collection;
 
 public class Constraint {
     public enum TYPE {
-        INDEX, UNIQUE
+        INDEX, UNIQUE, PRIMARY_KEY
     }
 
     private String constraintName;

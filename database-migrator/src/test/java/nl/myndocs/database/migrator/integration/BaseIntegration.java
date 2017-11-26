@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -169,6 +170,33 @@ public abstract class BaseIntegration {
             lastIndex = incremental;
         }
         statement.close();
+    }
+
+    @Test
+    public void testMultiplePrimaryKeys() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-multiple-primary-keys",
+                migration -> {
+                    migration.table("multiple_primary_keys")
+                            .addColumn("first_key", Column.TYPE.INTEGER, column -> column.notNull(true))
+                            .addColumn("second_key", Column.TYPE.INTEGER, column -> column.notNull(true))
+                            .addConstraint("multiple_primary_keys_pkey", Constraint.TYPE.PRIMARY_KEY, Arrays.asList("first_key", "second_key"))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO multiple_primary_keys (first_key, second_key) VALUES (1, 1)");
+        try {
+            statement.execute("INSERT INTO multiple_primary_keys (first_key, second_key) VALUES (1, 1)");
+            fail("This should not succeed");
+        } catch (Exception exception) {
+            assertTrue(isConstraintViolationException(exception));
+        } finally {
+            statement.close();
+        }
     }
 
     @Test
