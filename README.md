@@ -27,6 +27,7 @@ This is only meant for simple database structures. It will not support database 
 ### Supported column types
 
 - BOOLEAN
+- TEXT
 - VARCHAR
 - CHAR
 - SMALLINT
@@ -69,7 +70,7 @@ public class FirstMigrationScript implements MigrationScript {
 ```java
 // Get the JDBC connection
 Connection connection = ...;
-Database database =  Selector().loadFromConnection(connection);
+Database database =  new Selector().loadFromConnection(connection);
 Migrator migration = new Migrator(database);
 migration.migrate(
         new FirstMigrationScript(),

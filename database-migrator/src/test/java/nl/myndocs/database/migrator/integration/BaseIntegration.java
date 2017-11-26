@@ -16,9 +16,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.Arrays;
+import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -213,6 +213,43 @@ public abstract class BaseIntegration {
         );
 
         getMigrator().migrate(simpleMigrationScript);
+
+    }
+
+    @Test
+    public void testTextField() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-text-field",
+                migration -> {
+                    migration.table("text_field")
+                            .addColumn("id", Column.TYPE.INTEGER)
+                            .addColumn("name", Column.TYPE.TEXT)
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        StringBuilder longString = new StringBuilder();
+
+        for (int i = 0; i < 1000; i++) {
+            longString.append(UUID.randomUUID().toString());
+        }
+
+        PreparedStatement insertStatement = getConnection().prepareStatement("INSERT INTO text_field (id, name) VALUES (1, ?)");
+        insertStatement.setString(1, longString.toString());
+        insertStatement.execute();
+        insertStatement.close();
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("SELECT name FROM text_field WHERE id = 1");
+
+        ResultSet resultSet = statement.getResultSet();
+        resultSet.next();
+
+        String result = resultSet.getString(1);
+        assertThat(result, is(equalTo(longString.toString())));
+        statement.close();
 
     }
 

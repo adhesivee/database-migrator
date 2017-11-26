@@ -58,6 +58,7 @@ public class DerbyDatabase extends DefaultDatabase {
             case INTEGER:
             case SMALL_INTEGER:
             case UUID:
+            case TEXT:
                 return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
                 return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
@@ -78,6 +79,9 @@ public class DerbyDatabase extends DefaultDatabase {
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
                 return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));
+            case TEXT:
+                logger.warn("TEXT not supported, creating CLOB instead");
+                return "CLOB";
         }
 
         return super.getNativeColumnDefinition(columnType, changeTypeOptions);
