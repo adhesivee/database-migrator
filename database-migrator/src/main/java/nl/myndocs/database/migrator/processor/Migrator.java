@@ -6,7 +6,7 @@ import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Constraint;
+import nl.myndocs.database.migrator.definition.Index;
 import nl.myndocs.database.migrator.definition.Migration;
 import nl.myndocs.database.migrator.definition.Table;
 
@@ -35,7 +35,7 @@ public class Migrator {
             new Table.Builder(CHANGE_LOG_TABLE, newTableConsumer())
                     .addColumn("id", Column.TYPE.INTEGER, column -> column.autoIncrement(true).primary(true))
                     .addColumn("migration_id", Column.TYPE.VARCHAR)
-                    .addConstraint("migration_migration_id", Constraint.TYPE.UNIQUE, "migration_id")
+                    .addIndex("migration_migration_id", Index.TYPE.UNIQUE, "migration_id")
                     .save();
         }
 
@@ -85,7 +85,15 @@ public class Migrator {
                             constraint.getType()
                     )
             );
+            table.getNewIndexes().forEach(constraint ->
+                    database.alterTable(table.getTableName()).addIndex(
+                            constraint.getIndexName(),
+                            constraint.getColumnNames(),
+                            constraint.getType()
+                    )
+            );
             table.getDropConstraints().forEach(constraintName -> database.alterTable(table.getTableName()).dropConstraint(constraintName));
+            table.getDropIndexes().forEach(constraintName -> database.alterTable(table.getTableName()).dropIndex(constraintName));
             table.getNewForeignKeys().forEach(foreignKey ->
                     database.alterTable(table.getTableName()).addForeignKey(
                             foreignKey.getConstraintName(),

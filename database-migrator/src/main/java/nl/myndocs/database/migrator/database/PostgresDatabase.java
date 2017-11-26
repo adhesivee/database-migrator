@@ -42,6 +42,7 @@ public class PostgresDatabase extends DefaultDatabase {
     @Override
     protected String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
             case UUID:
                 getNativeColumnDefinition(columnType, new ChangeTypeOptions());
@@ -53,11 +54,19 @@ public class PostgresDatabase extends DefaultDatabase {
     @Override
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
+            case BIG_INTEGER:
+                if (changeTypeOptions.getAutoIncrement().orElse(false)) {
+                    return "BIGSERIAL";
+                }
+            case SMALL_INTEGER:
+                if (changeTypeOptions.getAutoIncrement().orElse(false)) {
+                    return "SMALLSERIAL";
+                }
             case INTEGER:
                 if (changeTypeOptions.getAutoIncrement().orElse(false)) {
                     return "SERIAL";
                 }
-                return "INTEGER";
+                return super.getNativeColumnDefinition(columnType);
             case UUID:
                 return "UUID";
         }

@@ -16,7 +16,9 @@ public class H2Database extends DefaultDatabase {
     @Override
     public String getNativeColumnDefinition(Column.TYPE columnType) {
         switch (columnType) {
+            case BIG_INTEGER:
             case INTEGER:
+            case SMALL_INTEGER:
             case UUID:
                 return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
             case VARCHAR:
@@ -30,8 +32,10 @@ public class H2Database extends DefaultDatabase {
     @Override
     protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
         switch (columnType) {
+            case BIG_INTEGER:
+            case SMALL_INTEGER:
             case INTEGER:
-                return "INTEGER " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
+                return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
             case UUID:
                 return "UUID";
         }

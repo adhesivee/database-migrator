@@ -7,7 +7,7 @@ import nl.myndocs.database.migrator.util.Assert;
  */
 public class Column {
     public enum TYPE {
-        SMALL_INTEGER, INTEGER, BIG_INTEGER, CHAR, VARCHAR, UUID, DATE, TIME, TIMESTAMP, BOOLEAN
+        SMALL_INTEGER, INTEGER, BIG_INTEGER, CHAR, VARCHAR, TEXT, UUID, DATE, TIME, TIMESTAMP, BOOLEAN
     }
 
     private String columnName;

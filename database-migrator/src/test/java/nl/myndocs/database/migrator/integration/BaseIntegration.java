@@ -4,8 +4,8 @@ import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.Selector;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
+import nl.myndocs.database.migrator.definition.Index;
 import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
 import nl.myndocs.database.migrator.processor.Migrator;
 import org.hamcrest.Matchers;
@@ -15,9 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
@@ -125,6 +126,134 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testBigIntegerIncrement() throws Exception {
+        incrementTest("test-big-int-increment", "increment_big_integer", Column.TYPE.BIG_INTEGER);
+    }
+
+    @Test
+    public void testIntegerIncrement() throws Exception {
+        incrementTest("test-int-increment", "increment_integer", Column.TYPE.INTEGER);
+    }
+
+    @Test
+    public void testSmallIntegerIncrement() throws Exception {
+        incrementTest("test-small-int-increment", "increment_small_integer", Column.TYPE.SMALL_INTEGER);
+    }
+
+    private void incrementTest(String migrationId, String tableName, Column.TYPE columnType) throws Exception {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                migrationId,
+                migration -> {
+                    migration.table(tableName)
+                            .addColumn("incremental", columnType, column -> column.primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO " + tableName + " (name) VALUES ('value1')");
+        statement.execute("INSERT INTO " + tableName + " (name) VALUES ('value2')");
+        statement.execute("INSERT INTO  " + tableName + "(name) VALUES ('value3')");
+
+        statement.execute("SELECT incremental FROM " + tableName + " ORDER BY incremental");
+
+        ResultSet resultSet = statement.getResultSet();
+
+        int lastIndex = -1;
+        while (resultSet.next()) {
+            int incremental = resultSet.getInt(1);
+            assertThat(lastIndex, Matchers.lessThan(incremental));
+
+            lastIndex = incremental;
+        }
+        statement.close();
+    }
+
+    @Test
+    public void testMultiplePrimaryKeys() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-multiple-primary-keys",
+                migration -> {
+                    migration.table("multiple_primary_keys")
+                            .addColumn("first_key", Column.TYPE.INTEGER, column -> column.notNull(true))
+                            .addColumn("second_key", Column.TYPE.INTEGER, column -> column.notNull(true))
+                            .addIndex("multiple_primary_keys_pkey", Index.TYPE.PRIMARY_KEY, Arrays.asList("first_key", "second_key"))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("INSERT INTO multiple_primary_keys (first_key, second_key) VALUES (1, 1)");
+        try {
+            statement.execute("INSERT INTO multiple_primary_keys (first_key, second_key) VALUES (1, 1)");
+            fail("This should not succeed");
+        } catch (Exception exception) {
+            assertTrue(isConstraintViolationException(exception));
+        } finally {
+            statement.close();
+        }
+    }
+
+    @Test
+    public void testIndex() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-simple_index",
+                migration -> {
+                    migration.table("simple_index")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.notNull(true).primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
+                            .addIndex("simple_index_name", Index.TYPE.INDEX, Arrays.asList("name"))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+    }
+
+    @Test
+    public void testTextField() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-text-field",
+                migration -> {
+                    migration.table("text_field")
+                            .addColumn("id", Column.TYPE.INTEGER)
+                            .addColumn("name", Column.TYPE.TEXT)
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+        StringBuilder longString = new StringBuilder();
+
+        for (int i = 0; i < 1000; i++) {
+            longString.append(UUID.randomUUID().toString());
+        }
+
+        PreparedStatement insertStatement = getConnection().prepareStatement("INSERT INTO text_field (id, name) VALUES (1, ?)");
+        insertStatement.setString(1, longString.toString());
+        insertStatement.execute();
+        insertStatement.close();
+
+        Statement statement = getConnection().createStatement();
+        statement.execute("SELECT name FROM text_field WHERE id = 1");
+
+        ResultSet resultSet = statement.getResultSet();
+        resultSet.next();
+
+        String result = resultSet.getString(1);
+        assertThat(result, is(equalTo(longString.toString())));
+        statement.close();
+
+    }
+
+    @Test
     public void testForeignKeyConstraint() throws Exception {
         try {
             SimpleMigrationScript migrationScript = new SimpleMigrationScript(
@@ -220,7 +349,7 @@ public abstract class BaseIntegration {
                 "migration-2",
                 migration -> {
                     migration.table("some_add_unique_table")
-                            .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .addIndex("unique_constraint_name", Index.TYPE.UNIQUE, "name")
                             .save();
                 }
         );
@@ -252,12 +381,12 @@ public abstract class BaseIntegration {
                 }
         );
 
-        SimpleMigrationScript addConstraintBuilder = new SimpleMigrationScript(
+        SimpleMigrationScript addIndexBuilder = new SimpleMigrationScript(
                 "migration-2",
                 migration -> {
 
                     migration.table("some_add_and_drop_unique_table")
-                            .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .addIndex("unique_add_and_drop_constraint_name", Index.TYPE.UNIQUE, "name")
                             .save();
 
                 }
@@ -274,7 +403,7 @@ public abstract class BaseIntegration {
 
         getMigrator().migrate(
                 createBuilder,
-                addConstraintBuilder,
+                addIndexBuilder,
                 dropConstraintBuilder
         );
 
