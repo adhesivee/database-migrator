@@ -10,6 +10,7 @@ import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
+import nl.myndocs.database.migrator.definition.Index;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -140,12 +141,17 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     @Override
     public void dropConstraint(String constraintName) {
+        dropIndex(constraintName);
+    }
+
+    @Override
+    public void dropIndex(String indexName) {
         String dropConstraintFormat = "ALTER TABLE %s DROP CONSTRAINT %s";
 
         String dropConstraintQuery = String.format(
                 dropConstraintFormat,
                 alterTableName,
-                constraintName
+                indexName
         );
 
         executeInStatement(dropConstraintQuery);
@@ -179,7 +185,16 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     @Override
     public void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type) {
-        if (Constraint.TYPE.INDEX.equals(type)) {
+        addIndex(
+                constraintName,
+                columnNames,
+                Index.TYPE.valueOf(type.name())
+        );
+    }
+
+    @Override
+    public void addIndex(String constraintName, Collection<String> columnNames, Index.TYPE type) {
+        if (Index.TYPE.INDEX.equals(type)) {
             String addConstraint = String.format(
                     "CREATE INDEX %s ON  %s (%s)",
                     constraintName,
@@ -253,7 +268,19 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
         throw new RuntimeException("Unknown type");
     }
 
+    @Deprecated
     protected String getNativeConstraintType(Constraint.TYPE type) {
+        switch (type) {
+            case PRIMARY_KEY:
+            case INDEX:
+            case UNIQUE:
+                return type.name().replaceAll("_", " ");
+        }
+
+        throw new RuntimeException("Could not process native constraint type");
+    }
+
+    protected String getNativeConstraintType(Index.TYPE type) {
         switch (type) {
             case PRIMARY_KEY:
             case INDEX:

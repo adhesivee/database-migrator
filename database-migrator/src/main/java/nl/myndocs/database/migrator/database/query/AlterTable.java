@@ -3,6 +3,7 @@ package nl.myndocs.database.migrator.database.query;
 import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
 import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
 import nl.myndocs.database.migrator.definition.Constraint;
+import nl.myndocs.database.migrator.definition.Index;
 
 import java.util.Collection;
 
@@ -20,7 +21,19 @@ public interface AlterTable {
 
     void dropForeignKey(String constraintName);
 
+    @Deprecated
+    /**
+     * {@link AlterTable#addIndex(String, Collection, Index.TYPE)}
+     */
     void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type);
 
+    @Deprecated
+    /**
+     * {@link AlterTable#dropIndex(String)}
+     */
     void dropConstraint(String constraintName);
+
+    void addIndex(String indexName, Collection<String> columnNames, Index.TYPE type);
+
+    void dropIndex(String indexName);
 }

@@ -6,27 +6,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-@Deprecated
-/**
- * {@link Index}
- */
-public class Constraint {
+public class Index {
     public enum TYPE {
         INDEX, UNIQUE, PRIMARY_KEY
     }
 
-    private String constraintName;
+    private String indexName;
     private TYPE type;
     private Collection<String> columnNames = new ArrayList<>();
 
-    private Constraint(Builder builder) {
-        constraintName = builder.getConstraintName();
+    private Index(Builder builder) {
+        indexName = builder.getIndexName();
         type = builder.getType();
         columnNames = builder.getColumnNames();
     }
 
-    public String getConstraintName() {
-        return constraintName;
+    public String getIndexName() {
+        return indexName;
     }
 
     public TYPE getType() {
@@ -38,16 +34,16 @@ public class Constraint {
     }
 
     public static class Builder {
-        private String constraintName;
+        private String indexName;
         private TYPE type;
         private Collection<String> columnNames = new ArrayList<>();
 
-        public Builder(String constraintName, TYPE type, Collection<String> columnNames) {
-            Assert.notNull(constraintName, "constraintName must not be null");
+        public Builder(String indexName, TYPE type, Collection<String> columnNames) {
+            Assert.notNull(indexName, "indexName must not be null");
             Assert.notNull(type, "type must not be null");
             Assert.notNull(columnNames, "columnNames must not be null");
 
-            this.constraintName = constraintName;
+            this.indexName = indexName;
             this.type = type;
             this.columnNames = columnNames;
         }
@@ -58,8 +54,8 @@ public class Constraint {
             return this;
         }
 
-        public String getConstraintName() {
-            return constraintName;
+        public String getIndexName() {
+            return indexName;
         }
 
         public TYPE getType() {
@@ -70,8 +66,8 @@ public class Constraint {
             return columnNames;
         }
 
-        public Constraint build() {
-            return new Constraint(this);
+        public Index build() {
+            return new Index(this);
         }
     }
 }

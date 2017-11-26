@@ -4,8 +4,8 @@ import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.database.Selector;
 import nl.myndocs.database.migrator.database.query.Database;
 import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.ForeignKey;
+import nl.myndocs.database.migrator.definition.Index;
 import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
 import nl.myndocs.database.migrator.processor.Migrator;
 import org.hamcrest.Matchers;
@@ -180,7 +180,7 @@ public abstract class BaseIntegration {
                     migration.table("multiple_primary_keys")
                             .addColumn("first_key", Column.TYPE.INTEGER, column -> column.notNull(true))
                             .addColumn("second_key", Column.TYPE.INTEGER, column -> column.notNull(true))
-                            .addConstraint("multiple_primary_keys_pkey", Constraint.TYPE.PRIMARY_KEY, Arrays.asList("first_key", "second_key"))
+                            .addIndex("multiple_primary_keys_pkey", Index.TYPE.PRIMARY_KEY, Arrays.asList("first_key", "second_key"))
                             .save();
                 }
         );
@@ -207,7 +207,7 @@ public abstract class BaseIntegration {
                     migration.table("simple_index")
                             .addColumn("id", Column.TYPE.INTEGER, column -> column.notNull(true).primary(true).autoIncrement(true))
                             .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
-                            .addConstraint("simple_index_name", Constraint.TYPE.INDEX, Arrays.asList("name"))
+                            .addIndex("simple_index_name", Index.TYPE.INDEX, Arrays.asList("name"))
                             .save();
                 }
         );
@@ -312,7 +312,7 @@ public abstract class BaseIntegration {
                 "migration-2",
                 migration -> {
                     migration.table("some_add_unique_table")
-                            .addConstraint("unique_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .addIndex("unique_constraint_name", Index.TYPE.UNIQUE, "name")
                             .save();
                 }
         );
@@ -344,12 +344,12 @@ public abstract class BaseIntegration {
                 }
         );
 
-        SimpleMigrationScript addConstraintBuilder = new SimpleMigrationScript(
+        SimpleMigrationScript addIndexBuilder = new SimpleMigrationScript(
                 "migration-2",
                 migration -> {
 
                     migration.table("some_add_and_drop_unique_table")
-                            .addConstraint("unique_add_and_drop_constraint_name", Constraint.TYPE.UNIQUE, "name")
+                            .addIndex("unique_add_and_drop_constraint_name", Index.TYPE.UNIQUE, "name")
                             .save();
 
                 }
@@ -366,7 +366,7 @@ public abstract class BaseIntegration {
 
         getMigrator().migrate(
                 createBuilder,
-                addConstraintBuilder,
+                addIndexBuilder,
                 dropConstraintBuilder
         );
 

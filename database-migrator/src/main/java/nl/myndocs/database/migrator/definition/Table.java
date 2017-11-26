@@ -16,10 +16,12 @@ public class Table {
     private List<Column> newColumns = new ArrayList<>();
     private Collection<ForeignKey> newForeignKeys = new ArrayList<>();
     private Collection<Constraint> newConstraints = new ArrayList<>();
+    private Collection<Index> newIndexes = new ArrayList<>();
     private Collection<Column> changeColumns = new ArrayList<>();
     private Collection<String> dropForeignKeys = new ArrayList<>();
     private Collection<String> dropColumns = new ArrayList<>();
     private Collection<String> dropConstraints = new ArrayList<>();
+    private Collection<String> dropIndexes = new ArrayList<>();
 
     private Table(Builder tableBuilder) {
         tableName = tableBuilder.getTableName();
@@ -45,9 +47,13 @@ public class Table {
         tableBuilder.getNewConstraints()
                 .forEach(constraint -> newConstraints.add(constraint.build()));
 
+        tableBuilder.getNewIndexes()
+                .forEach(index -> newIndexes.add(index.build()));
+
         dropColumns = new ArrayList<>(tableBuilder.getDropColumns());
         dropForeignKeys = new ArrayList<>(tableBuilder.getDropForeignKey());
         dropConstraints = new ArrayList<>(tableBuilder.getDropConstraints());
+        dropIndexes = new ArrayList<>(tableBuilder.getDropIndexes());
 
     }
 
@@ -83,6 +89,14 @@ public class Table {
         return newConstraints;
     }
 
+    public Collection<Index> getNewIndexes() {
+        return newIndexes;
+    }
+
+    public Collection<String> getDropIndexes() {
+        return dropIndexes;
+    }
+
     public static class Builder {
         private String tableName;
         private final Consumer<Table> tableConsumer;
@@ -90,9 +104,11 @@ public class Table {
         private List<Column.Builder> changeColumns = new ArrayList<>();
         private Collection<ForeignKey.Builder> newForeignKeys = new ArrayList<>();
         private Collection<Constraint.Builder> newConstraints = new ArrayList<>();
+        private Collection<Index.Builder> newIndexes = new ArrayList<>();
         private Collection<String> dropForeignKey = new ArrayList<>();
         private Collection<String> dropColumns = new ArrayList<>();
         private Collection<String> dropConstraints = new ArrayList<>();
+        private Collection<String> dropIndexes = new ArrayList<>();
 
         public Builder(String tableName, Consumer<Table> tableConsumer) {
             Assert.notNull(tableName, "tableName must not be null");
@@ -177,6 +193,10 @@ public class Table {
             return this;
         }
 
+        @Deprecated
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, Collection)}
+         */
         public Builder addConstraint(String constraintName, Constraint.TYPE type, Collection<String> columnNames) {
             newConstraints.add(
                     new Constraint.Builder(constraintName, type, columnNames)
@@ -185,14 +205,41 @@ public class Table {
             return this;
         }
 
+        @Deprecated
+        /**
+         * {@link Builder#dropIndex(String)}
+         */
         public Builder dropConstraint(String constraintName) {
             dropConstraints.add(constraintName);
 
             return this;
         }
 
+        @Deprecated
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, String)}
+         */
         public Builder addConstraint(String constraintName, Constraint.TYPE type, String columnName) {
             return addConstraint(constraintName, type, Arrays.asList(columnName));
+        }
+
+
+        public Builder addIndex(String constraintName, Index.TYPE type, Collection<String> columnNames) {
+            newIndexes.add(
+                    new Index.Builder(constraintName, type, columnNames)
+            );
+
+            return this;
+        }
+
+        public Builder dropIndex(String indexName) {
+            dropIndexes.add(indexName);
+
+            return this;
+        }
+
+        public Builder addIndex(String constraintName, Index.TYPE type, String columnName) {
+            return addIndex(constraintName, type, Arrays.asList(columnName));
         }
 
         public Builder dropForeignKey(String constraintName) {
@@ -238,6 +285,14 @@ public class Table {
 
         public List<Column.Builder> getChangeColumns() {
             return changeColumns;
+        }
+
+        public Collection<Index.Builder> getNewIndexes() {
+            return newIndexes;
+        }
+
+        public Collection<String> getDropIndexes() {
+            return dropIndexes;
         }
 
         public Table build() {
