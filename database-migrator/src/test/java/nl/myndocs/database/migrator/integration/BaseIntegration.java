@@ -200,6 +200,23 @@ public abstract class BaseIntegration {
     }
 
     @Test
+    public void testIndex() throws ClassNotFoundException, SQLException {
+        SimpleMigrationScript simpleMigrationScript = new SimpleMigrationScript(
+                "test-simple_index",
+                migration -> {
+                    migration.table("simple_index")
+                            .addColumn("id", Column.TYPE.INTEGER, column -> column.notNull(true).primary(true).autoIncrement(true))
+                            .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
+                            .addConstraint("simple_index_name", Constraint.TYPE.INDEX, Arrays.asList("name"))
+                            .save();
+                }
+        );
+
+        getMigrator().migrate(simpleMigrationScript);
+
+    }
+
+    @Test
     public void testForeignKeyConstraint() throws Exception {
         try {
             SimpleMigrationScript migrationScript = new SimpleMigrationScript(

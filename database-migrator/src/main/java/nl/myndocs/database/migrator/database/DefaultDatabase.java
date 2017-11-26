@@ -179,15 +179,26 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
 
     @Override
     public void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type) {
-        String addConstraint = String.format(
-                "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
-                getAlterTableName(),
-                constraintName,
-                getNativeConstraintType(type),
-                String.join(",", columnNames)
-        );
+        if (Constraint.TYPE.INDEX.equals(type)) {
+            String addConstraint = String.format(
+                    "CREATE INDEX %s ON  %s (%s)",
+                    constraintName,
+                    getAlterTableName(),
+                    String.join(",", columnNames)
+            );
 
-        executeInStatement(addConstraint);
+            executeInStatement(addConstraint);
+        } else {
+            String addConstraint = String.format(
+                    "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
+                    getAlterTableName(),
+                    constraintName,
+                    getNativeConstraintType(type),
+                    String.join(",", columnNames)
+            );
+
+            executeInStatement(addConstraint);
+        }
     }
 
     @Override
