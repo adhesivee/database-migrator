@@ -1,6 +1,11 @@
 package nl.myndocs.database.migrator.database.exception;
 
 public class UnknownDatabaseTypeException extends RuntimeException {
+    /**
+     * GSVUID.
+     */
+    private static final long serialVersionUID = 1481760392317309260L;
+
     public UnknownDatabaseTypeException() {
     }
 

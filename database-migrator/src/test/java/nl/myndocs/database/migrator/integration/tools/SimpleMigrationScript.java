@@ -1,9 +1,9 @@
 package nl.myndocs.database.migrator.integration.tools;
 
+import java.util.function.Consumer;
+
 import nl.myndocs.database.migrator.MigrationScript;
 import nl.myndocs.database.migrator.definition.Migration;
-
-import java.util.function.Consumer;
 
 public class SimpleMigrationScript implements MigrationScript {
     private final String migrationId;
@@ -22,5 +22,10 @@ public class SimpleMigrationScript implements MigrationScript {
     @Override
     public void migrate(Migration migration) {
         migrationConsumer.accept(migration);
+    }
+
+    @Override
+    public String author() {
+        return "DEFAULT";
     }
 }

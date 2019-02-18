@@ -1,11 +1,12 @@
 package nl.myndocs.database.migrator.database;
 
-import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
-import nl.myndocs.database.migrator.definition.Column;
+import java.sql.Connection;
+import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
+import nl.myndocs.database.migrator.definition.Column;
 
 /**
  * Created by albert on 18-8-2017.
@@ -18,7 +19,7 @@ public class DerbyDatabase extends DefaultDatabase {
     }
 
     @Override
-    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
+    public void changeType() {
         String[] alters = new String[]{
                 "ALTER TABLE %1$s ADD COLUMN %2$s_newtype %3$s",
                 "UPDATE %1$s SET %2$s_newtype = %2$s",
@@ -32,7 +33,7 @@ public class DerbyDatabase extends DefaultDatabase {
                     alter,
                     getAlterTableName(),
                     getAlterColumnName(),
-                    getNativeColumnDefinition(type)
+                    getNativeColumnDefinition(getCurrentColumn())
                     )
             );
 
@@ -40,50 +41,39 @@ public class DerbyDatabase extends DefaultDatabase {
     }
 
     @Override
-    public void rename(String rename) {
+    public void rename() {
         executeInStatement(
                 String.format(
                         "RENAME COLUMN %s.%s TO %s",
                         getAlterTableName(),
                         getAlterColumnName(),
-                        rename
+                        getCurrentColumn().getRename()
                 )
         );
     }
 
     @Override
-    public String getNativeColumnDefinition(Column.TYPE columnType) {
-        switch (columnType) {
+    protected String getNativeColumnDefinition(Column column) {
+
+        switch (column.getType()) {
             case BIG_INTEGER:
             case INTEGER:
             case SMALL_INTEGER:
-            case UUID:
-            case TEXT:
-                return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
-            case VARCHAR:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
-            case CHAR:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(254));
-        }
-
-        return super.getNativeColumnDefinition(columnType);
-    }
-
-    @Override
-    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
-        switch (columnType) {
-            case BIG_INTEGER:
-            case INTEGER:
-            case SMALL_INTEGER:
-                return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)" : "");
+                return super.getNativeColumnDefinition(column)
+                        + " "
+                        + (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement()
+                                ? "GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)"
+                                : "");
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
-                return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));
+                return "CHAR(36)";
             case TEXT:
                 logger.warn("TEXT not supported, creating CLOB instead");
                 return "CLOB";
+            default:
+                break;
         }
 
-        return super.getNativeColumnDefinition(columnType, changeTypeOptions);
+        return super.getNativeColumnDefinition(column);
     }
 }

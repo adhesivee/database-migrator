@@ -1,238 +1,315 @@
 package nl.myndocs.database.migrator.database;
 
-import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
-import nl.myndocs.database.migrator.database.query.AlterColumn;
-import nl.myndocs.database.migrator.database.query.AlterTable;
-import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
-import nl.myndocs.database.migrator.database.query.option.ColumnOptions;
-import nl.myndocs.database.migrator.database.query.option.ForeignKeyOptions;
-import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.Constraint;
-import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Index;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.database.exception.UnknownCascadeTypeException;
+import nl.myndocs.database.migrator.database.query.AlterColumn;
+import nl.myndocs.database.migrator.database.query.AlterPartition;
+import nl.myndocs.database.migrator.database.query.AlterTable;
+import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Constraint;
+import nl.myndocs.database.migrator.definition.ForeignKey;
+import nl.myndocs.database.migrator.definition.Index;
+import nl.myndocs.database.migrator.definition.Index.TYPE;
+import nl.myndocs.database.migrator.definition.Partition;
+import nl.myndocs.database.migrator.definition.Table;
 
 /**
  * Created by albert on 18-8-2017.
  */
-public class DefaultDatabase implements Database, AlterTable, AlterColumn {
+public class DefaultDatabase implements Database, AlterTable, AlterPartition, AlterColumn {
+
+    enum AlterMode {
+        ALTER_TABLE,
+        ALTER_PARTITION
+    }
 
     private final Connection connection;
-    private String alterTableName;
-    private String alterColumnName;
+    protected Table currentTable;
+    protected Column currentColumn;
+    protected Partition currentPartition;
+    protected AlterMode alterMode;
+    protected String schema;
+
+    public DefaultDatabase(Connection connection) {
+        this.connection = connection;
+    }
+
+    public DefaultDatabase(Connection connection, String schema) {
+        this.connection = connection;
+        this.schema = schema;
+    }
+    /**
+     * @return the currentTable
+     */
+    protected Table getCurrentTable() {
+        return currentTable;
+    }
+    /**
+     * @return the currentColumn
+     */
+    protected Column getCurrentColumn() {
+        return currentColumn;
+    }
 
     protected String getAlterTableName() {
-        return alterTableName;
+        return currentTable.getTableName();
     }
 
     protected String getAlterColumnName() {
-        return alterColumnName;
+        return currentColumn.getColumnName();
     }
 
     @Override
-    public AlterTable alterTable(String tableName) {
-        alterTableName = tableName;
+    public AlterTable alterTable(Table table) {
+        currentTable = table;
+        alterMode = AlterMode.ALTER_TABLE;
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AlterPartition alterPartition(Partition partition) {
+        currentPartition = partition;
+        alterMode = AlterMode.ALTER_PARTITION;
         return this;
     }
 
     @Override
-    public AlterColumn alterColumn(String columnName) {
-        alterColumnName = columnName;
+    public AlterColumn alterColumn(Column column) {
+        currentColumn = column;
         return this;
     }
 
     @Override
-    public void setDefault(String defaultValue) {
-        String queryFormat = "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT '%s'";
-
-        executeInStatement(
-                String.format(
-                        queryFormat,
-                        getAlterTableName(),
-                        getAlterColumnName(),
-                        escapeString(defaultValue)
-                )
-        );
+    public void setDefault() {
+        executeInStatement(setDefaultSQL(getAlterTableName(), getAlterColumnName(), getCurrentColumn().getDefaultValue()));
     }
 
-    protected String escapeString(String line) {
-        return line.replaceAll("'", "''");
+    protected String setDefaultSQL(String tableName, String columnName, String defaultValue) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s SET DEFAULT '%s'",
+                tableName,
+                columnName,
+                escapeString(defaultValue));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateTable(Table table) {
+        // Nothing. Overridden in subclasses.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void finishTable(Table table) {
+        // Nothing. Overridden in subclasses.
     }
 
     @Override
-    public void createTable(String tableName, Collection<ColumnOptions> columnOptions) {
+    public void createTable(Table table, Collection<Column> columns) {
+        executeInStatement(createTableSQL(table.getTableName(), columns));
+    }
+
+    protected String createTableSQL(String tableName, Collection<Column> columns) {
+
         Collection<String> columnQueries = new ArrayList<>();
-        for (ColumnOptions columnOption : columnOptions) {
+        for (Column columnOption : columns) {
             columnQueries.add(translateColumnOptions(columnOption));
         }
 
-
-        executeInStatement(
-                String.format(
-                        "CREATE TABLE %s (%s)",
-                        tableName,
-                        String.join(",", columnQueries)
-                )
-        );
+        return String.format("CREATE TABLE %s (%s)",
+                    tableName,
+                    String.join(",", columnQueries));
     }
 
     @Override
-    public void addColumn(ColumnOptions columnOption) {
-        executeInStatement(
-                String.format(
-                        "ALTER TABLE %s ADD COLUMN %s",
-                        getAlterTableName(),
-                        translateColumnOptions(columnOption)
-                )
-        );
+    public void addColumn(Column column) {
+        executeInStatement(addColumnSQL(getAlterTableName(), column));
     }
 
-    private String translateColumnOptions(ColumnOptions columnOption) {
-        return columnOption.getColumnName() + " " +
-                getNativeColumnDefinition(
-                        columnOption.getColumnType(),
-                        new ChangeTypeOptions(
-                                columnOption.getAutoIncrement().orElse(null),
-                                columnOption.getColumnSize().orElse(null)
-                        )
-                ) + " " +
-                (columnOption.getDefaultValue().isPresent() ? getDefaultValue(columnOption.getColumnType(), columnOption.getDefaultValue().get()) : "") + " " +
-                (columnOption.getIsNotNull().orElse(false) ? "NOT NULL" : "") + " " +
-                (columnOption.getIsPrimary().orElse(false) ? "PRIMARY KEY" : "") + " ";
+    protected String addColumnSQL(String tableName, Column column) {
+        return String.format("ALTER TABLE %s ADD COLUMN %s",
+                tableName,
+                translateColumnOptions(column));
     }
 
     @Override
-    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
-        String alterColumnFormat = "ALTER TABLE %s ALTER COLUMN %s %s";
+    public void changeType() {
+        executeInStatement(changeTypeSQL(getAlterTableName(), getCurrentColumn()));
+    }
 
-        String alterQuery = String.format(
-                alterColumnFormat,
-                alterTableName,
-                alterColumnName,
-                getNativeColumnDefinition(type, changeTypeOptions)
-        );
-
-        executeInStatement(alterQuery);
+    protected String changeTypeSQL(String tableName, Column column) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s %s",
+                tableName,
+                getAlterColumnName(),
+                getNativeColumnDefinition(column));
     }
 
     @Override
     public void dropColumn(String columnName) {
-        String dropColumnFormat = "ALTER TABLE %s DROP COLUMN %s";
+        executeInStatement(dropColumnSQL(getAlterTableName(), columnName));
+    }
 
-        String dropColumnQuery = String.format(
-                dropColumnFormat,
-                alterTableName,
-                columnName
-        );
-
-        executeInStatement(dropColumnQuery);
+    protected String dropColumnSQL(String tableName, String columnName) {
+        return String.format("ALTER TABLE %s DROP COLUMN %s",
+                tableName,
+                columnName);
     }
 
     @Override
-    public void dropForeignKey(String constraintName) {
-        dropConstraint(constraintName);
+    public void addConstraint(Constraint constraint) {
+        executeInStatement(addConstraintSQL(getAlterTableName(), constraint));
+    }
+
+    protected String addConstraintSQL(String tableName, Constraint constraint) {
+
+        String constraintName = constraint.getConstraintName();
+        Collection<String> columnNames = constraint.getColumnNames();
+        Constraint.TYPE type = constraint.getType();
+
+        switch (type) {
+        case PRIMARY_KEY:
+            return String.format("ALTER TABLE %s ADD CONSTRAINT %s PRIMARY KEY (%s)",
+                    tableName,
+                    constraintName,
+                    String.join(",", columnNames));
+        case UNIQUE:
+            return String.format("ALTER TABLE %s ADD CONSTRAINT %s UNIQUE (%s)",
+                    tableName,
+                    constraintName,
+                    String.join(",", columnNames));
+        case FOREIGN_KEY:
+
+            String foreignTable = constraint.getForeignKey().getForeignTable();
+            Collection<String> foreignNames = constraint.getForeignKey().getForeignKeys();
+            StringBuilder fkb = new StringBuilder();
+            fkb.append(
+                    String.format(
+                            "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
+                            tableName,
+                            constraintName,
+                            String.join(",", columnNames),
+                            foreignTable,
+                            String.join(",", foreignNames)
+                    )
+            );
+
+            if (constraint.getForeignKey().getDeleteCascade() != null) {
+                fkb.append(" ON DELETE " + getNativeCascadeType(constraint.getForeignKey().getDeleteCascade()));
+            }
+
+            if (constraint.getForeignKey().getUpdateCascade() != null) {
+                fkb.append(" ON UPDATE " + getNativeCascadeType(constraint.getForeignKey().getUpdateCascade()));
+            }
+
+            return fkb.toString();
+        case CHECK:
+            return String.format("ALTER TABLE %s ADD CONSTRAINT %s CHECK (%s)",
+                    tableName,
+                    constraintName,
+                    constraint.getCheckExpression());
+        default:
+            break;
+        }
+
+        return null;
     }
 
     @Override
     public void dropConstraint(String constraintName) {
-        dropIndex(constraintName);
+        executeInStatement(dropConstraintSQL(getAlterTableName(), constraintName));
+    }
+
+    protected String dropConstraintSQL(String tableName, String constraintName) {
+        return String.format("ALTER TABLE %s DROP CONSTRAINT %s", tableName, constraintName);
+    }
+
+    @Override
+    public void addIndex(Index index) {
+        executeInStatement(addIndexSQL(getAlterTableName(), index.getIndexName(), index.getColumnNames(), index.getType()));
+    }
+
+    protected String addIndexSQL(String tableName, String indexName, Collection<String> columnNames, Index.TYPE type) {
+
+        String sql = type == TYPE.UNIQUE
+                ? "CREATE UNIQUE INDEX %s ON %s (%s)"
+                : "CREATE INDEX %s ON %s (%s)";
+
+        return String.format(sql, indexName, tableName, String.join(",", columnNames));
     }
 
     @Override
     public void dropIndex(String indexName) {
-        String dropConstraintFormat = "ALTER TABLE %s DROP CONSTRAINT %s";
+        executeInStatement(dropIndexSQL(indexName));
+    }
 
-        String dropConstraintQuery = String.format(
-                dropConstraintFormat,
-                alterTableName,
-                indexName
-        );
-
-        executeInStatement(dropConstraintQuery);
+    protected String dropIndexSQL(String indexName) {
+        return String.format("DROP INDEX %s", indexName);
     }
 
     @Override
-    public void addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, ForeignKeyOptions foreignKeyOptions) {
-        StringBuilder alterForeignKeyQueryBuilder = new StringBuilder();
-
-        alterForeignKeyQueryBuilder.append(
-                String.format(
-                        "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)",
-                        getAlterTableName(),
-                        constraintName,
-                        String.join(",", localKeys),
-                        foreignTable,
-                        String.join(",", foreignKeys)
-                )
-        );
-
-        if (foreignKeyOptions.getOnDelete().isPresent()) {
-            alterForeignKeyQueryBuilder.append(" ON DELETE " + getNativeCascadeType(foreignKeyOptions.getOnDelete().get()));
-        }
-
-        if (foreignKeyOptions.getOnUpdate().isPresent()) {
-            alterForeignKeyQueryBuilder.append(" ON UPDATE " + getNativeCascadeType(foreignKeyOptions.getOnUpdate().get()));
-        }
-
-        executeInStatement(alterForeignKeyQueryBuilder.toString());
+    public void rename() {
+        executeInStatement(renameSQL(getAlterTableName(), getCurrentColumn().getRename()));
     }
 
-    @Override
-    public void addConstraint(String constraintName, Collection<String> columnNames, Constraint.TYPE type) {
-        addIndex(
-                constraintName,
-                columnNames,
-                Index.TYPE.valueOf(type.name())
-        );
-    }
-
-    @Override
-    public void addIndex(String constraintName, Collection<String> columnNames, Index.TYPE type) {
-        if (Index.TYPE.INDEX.equals(type)) {
-            String addConstraint = String.format(
-                    "CREATE INDEX %s ON  %s (%s)",
-                    constraintName,
-                    getAlterTableName(),
-                    String.join(",", columnNames)
-            );
-
-            executeInStatement(addConstraint);
-        } else {
-            String addConstraint = String.format(
-                    "ALTER TABLE %s ADD CONSTRAINT %s %s (%s)",
-                    getAlterTableName(),
-                    constraintName,
-                    getNativeConstraintType(type),
-                    String.join(",", columnNames)
-            );
-
-            executeInStatement(addConstraint);
-        }
-    }
-
-    @Override
-    public void rename(String rename) {
-        executeInStatement(
-                String.format(
-                        "ALTER TABLE %s ALTER COLUMN %s RENAME TO %s",
-                        getAlterTableName(),
+    protected String renameSQL(String tableName, String rename) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s RENAME TO %s",
+                        tableName,
                         getAlterColumnName(),
-                        rename
-                )
-        );
+                        rename);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setNull() {
+        executeInStatement(setNullSQL(getAlterTableName(), getAlterColumnName()));
+    }
+
+    protected String setNullSQL(String tableName, String columnName) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s DROP NOT NULL",
+                tableName,
+                columnName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setNotNull() {
+        executeInStatement(setNotNullSQL(getAlterTableName(), getAlterColumnName()));
+    }
+
+    protected String setNotNullSQL(String tableName, String columnName) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s SET NOT NULL",
+                tableName,
+                columnName);
     }
 
     @Override
     public boolean hasTable(String tableName) {
         try {
+
             DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
+            ResultSet tables = metaData.getTables(null, Objects.nonNull(schema) ? schema : null, "%", new String[]{"TABLE"});
 
             boolean tableExists = false;
             while (tables.next()) {
@@ -252,10 +329,13 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
         return connection;
     }
 
-    public DefaultDatabase(Connection connection) {
-        this.connection = connection;
+    /**
+     * @return the schema
+     */
+    @Override
+    public String getInitialSchema() {
+        return schema;
     }
-
     protected String getNativeCascadeType(ForeignKey.CASCADE cascade) {
         switch (cascade) {
             case RESTRICT:
@@ -265,86 +345,104 @@ public class DefaultDatabase implements Database, AlterTable, AlterColumn {
             case CASCADE:
                 return cascade.name().replace("_", " ");
         }
-        throw new RuntimeException("Unknown type");
+
+        throw new UnknownCascadeTypeException("Unknown type");
     }
 
-    @Deprecated
-    protected String getNativeConstraintType(Constraint.TYPE type) {
-        switch (type) {
-            case PRIMARY_KEY:
-            case INDEX:
-            case UNIQUE:
-                return type.name().replaceAll("_", " ");
-        }
+    /*
+     * Column type and size may be an invalid combination,
+     * but this is up to the user, to avoid such a situation.
+     */
+    protected String getNativeColumnDefinition(Column column) {
 
-        throw new RuntimeException("Could not process native constraint type");
-    }
-
-    protected String getNativeConstraintType(Index.TYPE type) {
-        switch (type) {
-            case PRIMARY_KEY:
-            case INDEX:
-            case UNIQUE:
-                return type.name().replaceAll("_", " ");
-        }
-
-        throw new RuntimeException("Could not process native constraint type");
-    }
-
-    protected String getNativeColumnDefinition(Column.TYPE columnType) {
-        switch (columnType) {
+        StringBuilder sb = new StringBuilder();
+        switch (column.getType()) {
             case SMALL_INTEGER:
-                return "SMALLINT";
+                sb.append("SMALLINT");
+                break;
             case BIG_INTEGER:
-                return "BIGINT";
+                sb.append("BIGINT");
+                break;
+            case TIMESTAMPTZ:
+                sb.append("TIMESTAMP");
+                break;
+            case UDT:
+                sb.append(column.getUDT());
+                break;
+            default:
+                sb.append(column.getType().name());
+                break;
         }
-        return columnType.name();
+
+        if (Objects.nonNull(column.getSize())) {
+            sb.append("(")
+              .append(column.getSize())
+              .append(")");
+        }
+
+        return sb.toString();
     }
 
-    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
-        if (!changeTypeOptions.getColumnSize().isPresent()) {
-            return getNativeColumnDefinition(columnType);
-        }
+    protected String getDefaultValue(Column column) {
 
-        return columnType.name() + "(" + changeTypeOptions.getColumnSize().get() + ")";
-    }
-
-
-    protected String getDefaultValue(Column.TYPE columnType, String defaultValue) {
         String quote = "";
-
         List<Column.TYPE> quotedTypes = Arrays.asList(
                 Column.TYPE.CHAR,
-                Column.TYPE.VARCHAR
+                Column.TYPE.VARCHAR,
+                Column.TYPE.TEXT
         );
-        if (quotedTypes.contains(columnType)) {
+
+        if (quotedTypes.contains(column.getType())) {
             quote = "'";
         }
 
-        return "DEFAULT " + quote + defaultValue + quote;
+        return "DEFAULT " + quote + column.getDefaultValue() + quote;
     }
 
     protected void executeInStatement(String query) {
         executeInStatement(new String[]{query});
     }
 
+    protected void executeInStatement(List<String> queries) {
+        executeInStatement(queries.toArray(new String[queries.size()]));
+    }
+
     protected void executeInStatement(String[] queries) {
-        Statement statement = null;
-        try {
-            statement = connection.createStatement();
+
+        try (Statement statement = connection.createStatement()) {
             for (String query : queries) {
                 statement.execute(query);
             }
-
         } catch (SQLException sqlException) {
             throw new CouldNotProcessException(sqlException);
-        } finally {
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                }
-            }
         }
+    }
+
+    protected String translateColumnOptions(Column column) {
+
+        StringBuilder cb = new StringBuilder(column.getColumnName())
+                .append(" ")
+                .append(getNativeColumnDefinition(column));
+
+        if (Objects.nonNull(column.getDefaultValue())) {
+            cb.append(" ")
+              .append(getDefaultValue(column));
+        }
+
+        if (Objects.nonNull(column.getIsNotNull())) {
+            cb.append(" ")
+              .append("NOT NULL");
+        }
+
+        if (Objects.nonNull(column.getPrimary())) {
+            cb.append(" ")
+              .append("PRIMARY KEY");
+        }
+
+        return cb.toString();
+    }
+
+    protected String escapeString(String line) {
+        return line.replaceAll("'", "''");
     }
 }
