@@ -31,6 +31,7 @@ import nl.myndocs.database.migrator.definition.Table;
 public class DefaultDatabase implements Database, AlterTable, AlterPartition, AlterColumn {
 
     enum AlterMode {
+        CREATE_TABLE,
         ALTER_TABLE,
         ALTER_PARTITION
     }
@@ -49,6 +50,16 @@ public class DefaultDatabase implements Database, AlterTable, AlterPartition, Al
     public DefaultDatabase(Connection connection, String schema) {
         this.connection = connection;
         this.schema = schema;
+    }
+
+    @Override
+    public void init() {
+        // Nothing
+    }
+
+    @Override
+    public void finish() {
+        // Nothing
     }
     /**
      * @return the currentTable
@@ -111,7 +122,7 @@ public class DefaultDatabase implements Database, AlterTable, AlterPartition, Al
      */
     @Override
     public void updateTable(Table table) {
-        // Nothing. Overridden in subclasses.
+        currentTable = table;
     }
 
     /**
@@ -119,11 +130,14 @@ public class DefaultDatabase implements Database, AlterTable, AlterPartition, Al
      */
     @Override
     public void finishTable(Table table) {
-        // Nothing. Overridden in subclasses.
+        currentTable = null;
+        alterMode = null;
     }
 
     @Override
     public void createTable(Table table, Collection<Column> columns) {
+        currentTable = table;
+        alterMode = AlterMode.CREATE_TABLE;
         executeInStatement(createTableSQL(table.getTableName(), columns));
     }
 

@@ -8,20 +8,20 @@ import nl.myndocs.database.migrator.definition.PartitionSet.TYPE;
  */
 public class HashPartitionSpec extends PartitionSpec {
 
-    private final int reminder;
+    private final int remainder;
     /**
      * Constructor.
      */
-    protected HashPartitionSpec(int remined) {
+    protected HashPartitionSpec(int remainder) {
         super();
-        this.reminder = remined;
+        this.remainder = remainder;
     }
 
     /**
-     * @return the reminder
+     * @return the remainder
      */
-    public int getReminder() {
-        return reminder;
+    public int getRemainder() {
+        return remainder;
     }
 
     /**

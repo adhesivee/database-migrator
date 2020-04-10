@@ -1,12 +1,18 @@
 package nl.myndocs.database.migrator.database;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
 import nl.myndocs.database.migrator.definition.Column;
 import nl.myndocs.database.migrator.definition.Constraint;
 import nl.myndocs.database.migrator.definition.Constraint.TYPE;
@@ -25,25 +31,53 @@ public class PostgresDatabase extends DefaultDatabase {
 
     private static final String DEFAULT_POSTGRES_SCHEMA_NAME = "public";
 
+    private String initialSchema;
+
     public PostgresDatabase(Connection connection, String schema) {
         super(connection, schema);
-        init();
     }
 
     public PostgresDatabase(Connection connection) {
         super(connection);
-        init();
     }
 
-    private void init() {
+    @Override
+    public void init() {
 
         String selectedSchema = schema != null ? schema : DEFAULT_POSTGRES_SCHEMA_NAME;
+        String currentSchema = this.initialSchema = null;
+
+        try (Statement stmt = getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT CURRENT_SCHEMA()")) {
+
+            if (rs.next()) {
+                currentSchema = rs.getString(1);
+            }
+
+        } catch (SQLException e) {
+            throw new CouldNotProcessException("Failed to query current schema.", e);
+        }
+
+        if (selectedSchema.equals(currentSchema)) {
+            return;
+        }
+
+        // Switch to requested schema
+        initialSchema = currentSchema;
         final String[] initSQL = {
             String.format("CREATE SCHEMA IF NOT EXISTS %s", selectedSchema),
             String.format("SET SEARCH_PATH = %s", selectedSchema)
         };
 
         executeInStatement(initSQL);
+    }
+
+    @Override
+    public void finish() {
+        // Switch back to former schema of the connection
+        if (Objects.nonNull(initialSchema)) {
+            executeInStatement(String.format("SET SEARCH_PATH = %s", initialSchema));
+        }
     }
 
     /**
@@ -57,6 +91,7 @@ public class PostgresDatabase extends DefaultDatabase {
             return;
         }
 
+        currentTable = table;
         executeInStatement(updateTablePartitionedSQL(table));
     }
 
@@ -98,6 +133,10 @@ public class PostgresDatabase extends DefaultDatabase {
         if (!table.isPartitioned()) {
             super.createTable(table, columns);
         } else {
+
+            currentTable = table;
+            alterMode = AlterMode.CREATE_TABLE;
+
             PartitionSet set = table.getPartitions();
             List<String> statements = new ArrayList<>((set.getSize() * 2) + 1);
 
@@ -109,7 +148,20 @@ public class PostgresDatabase extends DefaultDatabase {
                 .map(p -> createPartitionTablesSQL(table.getTableName(), set, p))
                 .collect(Collectors.toCollection(() -> statements));
 
-            // 3. Immediately detach
+            // 3. Create sequences if needed
+            Collection<Column> aiColumns = table.getNewColumns().stream()
+                    .filter(c -> c.getAutoIncrement() != null && c.getAutoIncrement())
+                    .collect(Collectors.toList());
+
+            if (!aiColumns.isEmpty()) {
+                set.getPartitions().stream()
+                    .filter(p -> !p.isForeign())
+                    .map(p -> createSequenceSpecSQL(p.getPartitionName(), aiColumns))
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toCollection(() -> statements));
+            }
+
+            // 4. Immediately detach
             statements.addAll(updateTablePartitionedSQL(table));
 
             executeInStatement(statements);
@@ -143,6 +195,29 @@ public class PostgresDatabase extends DefaultDatabase {
     }
 
     protected String createPartitionTablesSQL(String parentName, PartitionSet set, Partition partition) {
+
+        if (partition.isForeign()) {
+            return String.format("CREATE FOREIGN TABLE %s PARTITION OF %s FOR VALUES %s SERVER %s%s",
+                    partition.getPartitionName(),
+                    parentName,
+                    createPartitionSpecSQL(set, partition),
+                    partition.getForeignNode(),
+                    partition.getForeignOptions().isEmpty()
+                        ? ""
+                        : " OPTIONS (" +
+                            partition.getForeignOptions().entrySet().stream()
+                                .map(entry ->
+                                    new StringBuilder()
+                                        .append(entry.getKey())
+                                        .append(" '")
+                                        .append(entry.getValue())
+                                        .append("'")
+                                        .toString()
+                                )
+                                .collect(Collectors.joining(","))
+                            + ")");
+        }
+
         return String.format("CREATE TABLE %s PARTITION OF %s FOR VALUES %s",
                 partition.getPartitionName(),
                 parentName,
@@ -154,7 +229,7 @@ public class PostgresDatabase extends DefaultDatabase {
         switch (set.getType()) {
             case HASH:
                 HashPartitionSpec hs = (HashPartitionSpec) partition.getPartitionSpec();
-                return "WITH (MODULUS " + set.getPartitions().size() + ", REMAINDER " + hs.getReminder() + ")";
+                return "WITH (MODULUS " + set.getPartitions().size() + ", REMAINDER " + hs.getRemainder() + ")";
             case LIST:
                 ListPartitionSpec ls = (ListPartitionSpec) partition.getPartitionSpec();
                 return "IN (" + String.join(",", ls.getValues()) + ")";
@@ -166,6 +241,26 @@ public class PostgresDatabase extends DefaultDatabase {
         }
 
         return null;
+    }
+
+    protected Collection<String> createSequenceSpecSQL(String tableName, Collection<Column> aiColumns) {
+
+        return aiColumns.stream()
+                .flatMap(c -> {
+                    final String seqName = new StringBuilder("sq_")
+                            .append(tableName)
+                            .append("_")
+                            .append(c.getColumnName())
+                            .toString();
+
+                    return Stream.of(
+                        String.format("CREATE SEQUENCE %s AS %s OWNED BY %s.%s", seqName, getNativeColumnDefinition(c), tableName, c.getColumnName()),
+                        super.setNotNullSQL(tableName, c.getColumnName()),
+                        setDefaultSQL(tableName, c.getColumnName(), "NEXTVAL('" + seqName + "')"));
+                    }
+                )
+                .collect(Collectors.toList());
+
     }
 
     /**
@@ -184,10 +279,14 @@ public class PostgresDatabase extends DefaultDatabase {
 
     protected List<String> setDefaultPartitionedSQL(Table table, String defaultValue) {
         return table.getPartitionStream()
-                .map(p -> super.setDefaultSQL(p.getPartitionName(), getAlterColumnName(), defaultValue))
+                .map(p -> setDefaultSQL(p.getPartitionName(), getAlterColumnName(), defaultValue))
                 .collect(Collectors.toList());
     }
 
+    @Override
+    protected String setDefaultSQL(String tableName, String columnName, String defaultValue) {
+        return String.format("ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s", tableName, columnName, defaultValue);
+    }
     /**
      * {@inheritDoc}
      */
@@ -199,7 +298,16 @@ public class PostgresDatabase extends DefaultDatabase {
             return;
         }
 
-        executeInStatement(addColumnPartitionedSQL(currentTable, column));
+        List<String> statements = new ArrayList<>(addColumnPartitionedSQL(currentTable, column));
+
+        if (column.getAutoIncrement() != null && column.getAutoIncrement()) {
+            getCurrentTable().getPartitionStream()
+                .map(p -> createSequenceSpecSQL(p.getPartitionName(), Collections.singletonList(column)))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toCollection(() -> statements));
+        }
+
+        executeInStatement(statements);
     }
 
     protected List<String> addColumnPartitionedSQL(Table table, Column column) {
@@ -216,7 +324,22 @@ public class PostgresDatabase extends DefaultDatabase {
             return;
         }
 
-        executeInStatement(changeTypePartitionedSQL(currentTable, getCurrentColumn()));
+        List<String> statements = new ArrayList<>(changeTypePartitionedSQL(currentTable, getCurrentColumn()));
+
+        if (getCurrentColumn().getAutoIncrement() != null && getCurrentColumn().getAutoIncrement()) {
+            getCurrentTable().getPartitionStream()
+                .map(p -> createSequenceSpecSQL(p.getPartitionName(), Collections.singletonList(getCurrentColumn())))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toCollection(() -> statements));
+        }
+
+        executeInStatement(statements);
+    }
+
+    protected List<String> changeTypePartitionedSQL(Table table, Column column) {
+        return table.getPartitionStream()
+                .map(p -> changeTypeSQL(p.getPartitionName(), column))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -228,12 +351,6 @@ public class PostgresDatabase extends DefaultDatabase {
                 getAlterTableName(),
                 getAlterColumnName(),
                 getNativeColumnDefinition(column));
-    }
-
-    protected List<String> changeTypePartitionedSQL(Table table, Column column) {
-        return table.getPartitionStream()
-                .map(p -> changeTypeSQL(p.getPartitionName(), column))
-                .collect(Collectors.toList());
     }
 
     /**
@@ -420,17 +537,17 @@ public class PostgresDatabase extends DefaultDatabase {
 
         switch (column.getType()) {
             case BIG_INTEGER:
-                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement()) {
+                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement() && !getCurrentTable().isPartitioned()) {
                     return "BIGSERIAL";
                 }
                 break;
             case SMALL_INTEGER:
-                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement()) {
+                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement() && !getCurrentTable().isPartitioned()) {
                     return "SMALLSERIAL";
                 }
                 break;
             case INTEGER:
-                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement()) {
+                if (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement() && !getCurrentTable().isPartitioned()) {
                     return "SERIAL";
                 }
                 break;

@@ -33,7 +33,6 @@ public class PartitionSet {
         super();
 
         Objects.requireNonNull(builder.type, "type must not be null");
-
         Objects.requireNonNull(builder.partitions, "partitions must not be null");
         if (builder.partitions.isEmpty()) {
             throw new InvalidSpecException("partitions must not be empty");

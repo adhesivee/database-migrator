@@ -3,6 +3,8 @@ package nl.myndocs.database.migrator.definition;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -13,7 +15,8 @@ import java.util.function.Consumer;
 public class Partition {
 
     private final String partitionName;
-    private final boolean foreign;
+    private final String foreignNode;
+    private final Map<String, String> foreignOptions;
     private final PartitionSpec partitionSpec;
     private final Collection<Constraint> newConstraints;
     private final Collection<Index> newIndexes;
@@ -30,7 +33,8 @@ public class Partition {
         Objects.requireNonNull(builder.partitionSpec, "partitionExpr must not be null");
 
         this.partitionName = builder.partitionName;
-        this.foreign = builder.foreign;
+        this.foreignNode = builder.foreignNode;
+        this.foreignOptions = builder.foreignOptions;
         this.partitionSpec = builder.partitionSpec;
         this.newConstraints = new ArrayList<>(builder.newConstraints.size());
         this.newIndexes = new ArrayList<>(builder.newIndexes.size());
@@ -51,7 +55,19 @@ public class Partition {
      * @return the foreign
      */
     public boolean isForeign() {
-        return foreign;
+        return Objects.nonNull(foreignNode) && foreignNode.length() > 0;
+    }
+    /**
+     * @return the foreignNode
+     */
+    public String getForeignNode() {
+        return foreignNode;
+    }
+    /**
+     * @return the foreignOptions
+     */
+    public Map<String, String> getForeignOptions() {
+        return foreignOptions;
     }
     /**
      * @return the partitionExpr
@@ -81,21 +97,22 @@ public class Partition {
      */
     public static class Builder {
         private String partitionName;
-        private boolean foreign;
         private PartitionSpec partitionSpec;
         private Collection<Constraint.Builder> newConstraints = new ArrayList<>();
         private Collection<Index.Builder> newIndexes = new ArrayList<>();
         private Collection<String> dropConstraints = new ArrayList<>();
         private Collection<String> dropIndexes = new ArrayList<>();
+        private String foreignNode;
+        private Map<String, String> foreignOptions = new HashMap<>();
 
         public Builder() {
             super();
         }
 
-        public Builder(String name, boolean foreign) {
+        public Builder(String name, String foreignNode) {
             super();
             this.partitionName = name;
-            this.foreign = foreign;
+            this.foreignNode = foreignNode;
         }
 
         public Builder setPartitionName(String partitionName) {
@@ -103,8 +120,13 @@ public class Partition {
             return this;
         }
 
-        public Builder setForeign(boolean foreign) {
-            this.foreign = foreign;
+        public Builder setForeign(String foreignNode) {
+            this.foreignNode = foreignNode;
+            return this;
+        }
+
+        public Builder addForeignOption(String name, String value) {
+            this.foreignOptions.put(name, value);
             return this;
         }
 

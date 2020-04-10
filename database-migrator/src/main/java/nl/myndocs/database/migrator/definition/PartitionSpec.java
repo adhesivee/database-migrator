@@ -15,8 +15,8 @@ public abstract class PartitionSpec {
 
     public abstract PartitionSet.TYPE getType();
 
-    public static PartitionSpec of (int reminder) {
-        return new HashPartitionSpec(reminder);
+    public static PartitionSpec of (int remainder) {
+        return new HashPartitionSpec(remainder);
     }
 
     public static PartitionSpec of (String... values) {

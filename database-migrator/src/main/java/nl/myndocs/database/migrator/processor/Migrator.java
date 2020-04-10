@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.function.Consumer;
 
 import nl.myndocs.database.migrator.MigrationScript;
@@ -51,19 +52,22 @@ public class Migrator {
 
     public void migrate(MigrationContext ctx, MigrationScript... migrationScripts) throws SQLException {
 
-        if (!database.hasTable(changeLogTable)) {
-            new Table.Builder(changeLogTable, newTableConsumer())
-                    .addColumn(FIELD_ID, Column.TYPE.INTEGER, column -> column.autoIncrement(true).primary(true))
-                    .addColumn(FIELD_MIGRATION_ID, Column.TYPE.VARCHAR)
-                    .addColumn(FIELD_AUTHOR, Column.TYPE.VARCHAR)
-                    .addColumn(FIELD_APPLY_DATE, Column.TYPE.TIMESTAMP)
-                    .addIndex("ix_" + changeLogTable + "_" + FIELD_MIGRATION_ID, Index.TYPE.UNIQUE, FIELD_MIGRATION_ID)
-                    .save();
-        }
-
         Connection connection = database.getConnection();
         boolean isAutocommit = connection.getAutoCommit();
         try {
+
+            // Possibly switsch schema etc. activities
+            database.init();
+
+            if (!database.hasTable(changeLogTable)) {
+                new Table.Builder(changeLogTable, newTableConsumer())
+                        .addColumn(FIELD_ID, Column.TYPE.INTEGER, column -> column.autoIncrement(true).primary(true))
+                        .addColumn(FIELD_MIGRATION_ID, Column.TYPE.VARCHAR)
+                        .addColumn(FIELD_AUTHOR, Column.TYPE.VARCHAR)
+                        .addColumn(FIELD_APPLY_DATE, Column.TYPE.TIMESTAMP)
+                        .addIndex("ix_" + changeLogTable + "_" + FIELD_MIGRATION_ID, Index.TYPE.UNIQUE, FIELD_MIGRATION_ID)
+                        .save();
+            }
 
             connection.setAutoCommit(false);
             for (MigrationScript migrationScript : migrationScripts) {
@@ -95,7 +99,7 @@ public class Migrator {
                             .append(") VALUES (?, ?, ?)")
                             .toString())) {
 
-                    Migration m = new Migration(migrationScript.migrationId(), database, newTableConsumer(), newRawConsumer(), ctx);
+                    Migration m = new Migration(migrationScript.migrationId(), database, newTableConsumer(), newRawConsumer(ctx), ctx);
                     migrationScript.migrate(m);
 
                     insertPreparedStatement.setString(1, migrationScript.migrationId());
@@ -116,6 +120,7 @@ public class Migrator {
             }
         } finally {
             connection.setAutoCommit(isAutocommit);
+            database.finish();
         }
     }
 
@@ -130,8 +135,25 @@ public class Migrator {
         });
     }
 
-    private Consumer<Raw> newRawConsumer() {
-        return raw -> raw.getRawSQL().forEach(this::applyRawSQL);
+    private Consumer<Raw> newRawConsumer(MigrationContext ctx) {
+        return raw -> raw.getRawSQL().forEach(holder -> {
+
+            if (holder.isConditional() && !holder.getCondition().test(ctx)) {
+                return;
+            }
+
+            if (holder.isGenerated()) {
+
+                Collection<String> result = holder.getGenerator().apply(ctx);
+                if (result != null && !result.isEmpty()) {
+                    result.forEach(this::applyRawSQL);
+                }
+
+                return;
+            }
+
+            applyRawSQL(holder.getValue());
+        });
     }
 
     private void applyStart(Table table) {

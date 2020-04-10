@@ -12,6 +12,10 @@ import nl.myndocs.database.migrator.definition.Table;
  */
 public interface Database {
 
+    void init();
+
+    void finish();
+
     void createTable(Table table, Collection<Column> columns);
 
     void updateTable(Table table);
