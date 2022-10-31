@@ -322,13 +322,20 @@ public class DefaultDatabase implements Database, AlterTable, AlterPartition, Al
     public boolean hasTable(String tableName) {
         try {
 
+            final String schemaPattern = Objects.nonNull(schema) ? schema + "%" : null;
+            final String namePattern = tableName + "%";
+            final String[] typesFilter = new String[]{ "TABLE", "PARTITIONED TABLE" };
+
             DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet tables = metaData.getTables(null, Objects.nonNull(schema) ? schema : null, "%", new String[]{"TABLE"});
+            ResultSet tables = metaData.getTables(null, schemaPattern, namePattern, typesFilter);
 
             boolean tableExists = false;
             while (tables.next()) {
-                if (tableName.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
+
+                final String other = tables.getString("TABLE_NAME");
+                if (tableName.equalsIgnoreCase(other)) {
                     tableExists = true;
+                    break;
                 }
             }
 

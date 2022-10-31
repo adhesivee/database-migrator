@@ -3,6 +3,9 @@ package nl.myndocs.database.migrator.definition;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import nl.myndocs.database.migrator.database.exception.InvalidSpecException;
@@ -25,6 +28,10 @@ public class Index {
     private TYPE type;
     private Collection<String> columnNames;
     private Collection<String> includeNames;
+    private boolean unique;
+    private String condition;
+    private Map<String, String> options;
+    private String settings;
 
     private Index(Builder builder) {
 
@@ -40,6 +47,10 @@ public class Index {
         type = builder.type;
         columnNames = builder.columnNames;
         includeNames = builder.includeNames;
+        unique = builder.unique;
+        condition = builder.condition;
+        options = builder.options;
+        settings = builder.settings;
     }
 
     public String getIndexName() {
@@ -61,11 +72,43 @@ public class Index {
         return includeNames;
     }
 
+    /**
+     * @return the unique
+     */
+    public boolean isUnique() {
+        return unique;
+    }
+
+    /**
+     * @return the condition
+     */
+    public String getCondition() {
+        return condition;
+    }
+
+    /**
+     * @return the options
+     */
+    public Map<String, String> getOptions() {
+        return Objects.isNull(options) ? Collections.emptyMap() : options;
+    }
+
+    /**
+     * @return the settings
+     */
+    public String getSettings() {
+        return settings;
+    }
+
     public static class Builder {
         private String indexName;
         private TYPE type;
         private Collection<String> columnNames = new ArrayList<>();
         private Collection<String> includeNames = new ArrayList<>();
+        private boolean unique;
+        private String condition;
+        private Map<String, String> options;
+        private String settings;
 
         public Builder(String indexName, TYPE type, Collection<String> columnNames) {
             this.indexName = indexName;
@@ -95,6 +138,37 @@ public class Index {
 
         public Builder include(Collection<String> includeNames) {
             this.includeNames.addAll(includeNames);
+            return this;
+        }
+
+        public Builder unique(boolean unique) {
+            this.unique = unique;
+            return this;
+        }
+
+        public Builder condiiton(String condition) {
+            this.condition = condition;
+            return this;
+        }
+
+        public Builder option(String name, String value) {
+            return options(Collections.singletonMap(name, value));
+        }
+
+        public Builder options(Map<String, String> options) {
+
+            if (options != null && !options.isEmpty()) {
+                if (this.options == null) {
+                    this.options = new HashMap<>();
+                }
+
+                this.options.putAll(options);
+            }
+            return this;
+        }
+
+        public Builder settings(String settings) {
+            this.settings = settings;
             return this;
         }
 

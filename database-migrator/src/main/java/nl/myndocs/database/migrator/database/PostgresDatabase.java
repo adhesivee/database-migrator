@@ -428,11 +428,20 @@ public class PostgresDatabase extends DefaultDatabase {
 
     protected String addIndexSQL(String tableName, Index index) {
 
+        // CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] name ] ON [ ONLY ] table_name [ USING method ]
+        //    ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )
+        //    [ INCLUDE ( column_name [, ...] ) ]
+        //    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+        //    [ TABLESPACE tablespace_name ]
+        //    [ WHERE predicate ]
+
+        // 1. Intro
         StringBuilder sqlb = new StringBuilder(
             String.format(index.getType() == Index.TYPE.UNIQUE
                 ? "CREATE UNIQUE INDEX %s ON %s"
                 : "CREATE INDEX %s ON %s", index.getIndexName(), tableName));
 
+        // 2. Method
         switch (index.getType()) {
         case BTREE:
             sqlb.append(" USING BTREE").toString();
@@ -456,9 +465,34 @@ public class PostgresDatabase extends DefaultDatabase {
             break;
         }
 
+        // 3. Columns
         sqlb.append(String.format(" (%s)", String.join(",", index.getColumnNames())));
+
+        // 4. Settings (collations, sorting, etc.)
+        if (index.getSettings() != null && index.getSettings().length() > 0) {
+            sqlb
+                .append(" ")
+                .append(index.getSettings());
+        }
+
+        // 5. Include
         if (index.getIncludeNames() != null && !index.getIncludeNames().isEmpty()) {
             sqlb.append(String.format(" INCLUDE (%s)", String.join(",", index.getIncludeNames())));
+        }
+
+        // 6. Storage options
+        if (!index.getOptions().isEmpty()) {
+            sqlb.append(" WITH ")
+                .append(index.getOptions().entrySet().stream()
+                        .map(entry -> entry.getKey() + (entry.getValue() != null && entry.getValue().length() > 0 ? " = " + entry.getValue() : ""))
+                        .collect(Collectors.joining(", ")));
+
+        }
+
+        // 7. Conditional indexing predicate.
+        if (index.getCondition() != null && index.getCondition().length() > 0) {
+            sqlb.append(" WHERE ")
+                .append(index.getCondition());
         }
 
         return sqlb.toString();
