@@ -48,7 +48,7 @@ public class PostgresDatabase extends DefaultDatabase {
         String currentSchema = this.initialSchema = null;
 
         try (Statement stmt = getConnection().createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT CURRENT_SCHEMA()")) {
+             ResultSet rs = stmt.executeQuery("SHOW SEARCH_PATH")) {
 
             if (rs.next()) {
                 currentSchema = rs.getString(1);
@@ -58,12 +58,13 @@ public class PostgresDatabase extends DefaultDatabase {
             throw new CouldNotProcessException("Failed to query current schema.", e);
         }
 
-        if (selectedSchema.equals(currentSchema)) {
-            return;
+        // Memorize search path, if it differs from selected
+        // We gonna switch it back after we're done
+        if (!selectedSchema.equals(currentSchema)) {
+            initialSchema = currentSchema;
         }
 
         // Switch to requested schema
-        initialSchema = currentSchema;
         final String[] initSQL = {
             String.format("CREATE SCHEMA IF NOT EXISTS %s", selectedSchema),
             String.format("SET SEARCH_PATH = %s", selectedSchema)
