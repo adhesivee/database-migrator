@@ -1,25 +1,39 @@
 package nl.myndocs.database.migrator.integration;
 
-import nl.myndocs.database.migrator.MigrationScript;
-import nl.myndocs.database.migrator.database.Selector;
-import nl.myndocs.database.migrator.database.query.Database;
-import nl.myndocs.database.migrator.definition.Column;
-import nl.myndocs.database.migrator.definition.ForeignKey;
-import nl.myndocs.database.migrator.definition.Index;
-import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
-import nl.myndocs.database.migrator.processor.Migrator;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collections;
+import java.util.UUID;
+
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
-import java.util.Arrays;
-import java.util.UUID;
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import nl.myndocs.database.migrator.MigrationScript;
+import nl.myndocs.database.migrator.database.Selector;
+import nl.myndocs.database.migrator.database.query.Database;
+import nl.myndocs.database.migrator.definition.Column;
+import nl.myndocs.database.migrator.definition.Constraint;
+import nl.myndocs.database.migrator.definition.ForeignKey;
+import nl.myndocs.database.migrator.definition.Index;
+import nl.myndocs.database.migrator.definition.PartitionSet;
+import nl.myndocs.database.migrator.integration.tools.SimpleMigrationScript;
+import nl.myndocs.database.migrator.processor.Migrator;
 
 /**
  * Created by albert on 14-8-2017.
@@ -93,9 +107,14 @@ public abstract class BaseIntegration {
                             .addColumn("name", Column.TYPE.VARCHAR, column -> {
                                 column.size(2);
                             })
-                            .addForeignKey("some_FK", "some_table", "some_table_id", "id", key -> {
-                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                            .addConstraint("some_FK", Constraint.TYPE.FOREIGN_KEY, cb -> {
+                                cb.columns("some_table_id")
+                                  .foreignKey(fk -> {
+                                    fk.foreignTable("some_table")
+                                      .foreignKeys("id")
+                                      .cascadeDelete(ForeignKey.CASCADE.RESTRICT)
+                                      .cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                                });
                             })
                             .save();
 
@@ -123,6 +142,21 @@ public abstract class BaseIntegration {
             logger.warn("Re-attempt acquiring connection");
             return acquireConnection(connectionUri, username, password);
         }
+    }
+
+    @Test
+    public void testPartitions() throws Exception {
+        SimpleMigrationScript sis = new SimpleMigrationScript("partitions-1",
+                migration -> {
+                    migration.table("partitioned_test")
+                        .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
+                        .addPartitions(PartitionSet.TYPE.HASH, set -> {
+                            set.partitions(() -> {
+                                return Collections.emptyList();
+                            });
+                        })
+                        .save();
+                });
     }
 
     @Test
@@ -180,7 +214,7 @@ public abstract class BaseIntegration {
                     migration.table("multiple_primary_keys")
                             .addColumn("first_key", Column.TYPE.INTEGER, column -> column.notNull(true))
                             .addColumn("second_key", Column.TYPE.INTEGER, column -> column.notNull(true))
-                            .addIndex("multiple_primary_keys_pkey", Index.TYPE.PRIMARY_KEY, Arrays.asList("first_key", "second_key"))
+                            .addConstraint("multiple_primary_keys_pkey", Constraint.TYPE.PRIMARY_KEY, "first_key", "second_key")
                             .save();
                 }
         );
@@ -207,7 +241,7 @@ public abstract class BaseIntegration {
                     migration.table("simple_index")
                             .addColumn("id", Column.TYPE.INTEGER, column -> column.notNull(true).primary(true).autoIncrement(true))
                             .addColumn("name", Column.TYPE.VARCHAR, column -> column.size(255))
-                            .addIndex("simple_index_name", Index.TYPE.INDEX, Arrays.asList("name"))
+                            .addIndex("simple_index_name", Index.TYPE.DEFAULT, "name")
                             .save();
                 }
         );
@@ -268,9 +302,14 @@ public abstract class BaseIntegration {
                         migration.table("some_foreign_other_table")
                                 .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                                 .addColumn("some_table_id", Column.TYPE.INTEGER)
-                                .addForeignKey("some_foreign_FK", "some_foreign_table", "some_table_id", "id", key -> {
-                                    key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                                    key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                                .addConstraint("some_foreign_FK", Constraint.TYPE.FOREIGN_KEY, cb -> {
+                                    cb.columns("some_table_id")
+                                      .foreignKey(fk -> {
+                                       fk.foreignTable("some_foreign_table")
+                                         .foreignKeys("id")
+                                         .cascadeDelete(ForeignKey.CASCADE.RESTRICT)
+                                         .cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                                    });
                                 })
                                 .save();
                     });
@@ -299,9 +338,14 @@ public abstract class BaseIntegration {
                     migration.table("some_foreign_drop_other_table")
                             .addColumn("id", Column.TYPE.INTEGER, column -> column.primary(true).autoIncrement(true))
                             .addColumn("some_table_id", Column.TYPE.INTEGER)
-                            .addForeignKey("some_foreign_drop_FK", "some_foreign_drop_table", "some_table_id", "id", key -> {
-                                key.cascadeDelete(ForeignKey.CASCADE.RESTRICT);
-                                key.cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                            .addConstraint("some_foreign_drop_FK", Constraint.TYPE.FOREIGN_KEY, cb -> {
+                                cb.columns("some_table_id")
+                                  .foreignKey(fk -> {
+                                      fk.foreignTable("some_foreign_drop_table")
+                                        .foreignKeys("id")
+                                        .cascadeDelete(ForeignKey.CASCADE.RESTRICT)
+                                        .cascadeUpdate(ForeignKey.CASCADE.RESTRICT);
+                                  });
                             })
                             .save();
                 });
@@ -310,7 +354,7 @@ public abstract class BaseIntegration {
                 "migration-2",
                 migration -> {
                     migration.table("some_foreign_drop_other_table")
-                            .dropForeignKey("some_foreign_drop_FK")
+                            .dropConstraint("some_foreign_drop_FK")
                             .save();
                 }
         );

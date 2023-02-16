@@ -1,12 +1,12 @@
 package nl.myndocs.database.migrator.definition;
 
-import nl.myndocs.database.migrator.util.Assert;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Created by albert on 13-8-2017.
@@ -14,47 +14,38 @@ import java.util.function.Consumer;
 public class Table {
     private String tableName;
     private List<Column> newColumns = new ArrayList<>();
-    private Collection<ForeignKey> newForeignKeys = new ArrayList<>();
     private Collection<Constraint> newConstraints = new ArrayList<>();
     private Collection<Index> newIndexes = new ArrayList<>();
     private Collection<Column> changeColumns = new ArrayList<>();
-    private Collection<String> dropForeignKeys = new ArrayList<>();
-    private Collection<String> dropColumns = new ArrayList<>();
-    private Collection<String> dropConstraints = new ArrayList<>();
-    private Collection<String> dropIndexes = new ArrayList<>();
+    private Collection<String> dropColumns;
+    private Collection<String> dropConstraints;
+    private Collection<String> dropIndexes;
+    private Collection<String> rawSQL;
+    private PartitionSet partitions;
 
     private Table(Builder tableBuilder) {
-        tableName = tableBuilder.getTableName();
 
-        long emptyTypeCount = tableBuilder.getNewColumns()
-                .stream()
-                .filter(column -> column.getType() == null)
-                .count();
+        tableName = tableBuilder.tableName;
 
-        if (emptyTypeCount > 0) {
-            throw new RuntimeException("New column types should have a type");
-        }
-
-        tableBuilder.getNewColumns()
+        tableBuilder.newColumnBuilders
                 .forEach(column -> newColumns.add(column.build()));
 
-        tableBuilder.getNewForeignKeys()
-                .forEach(foreignColumnKey -> newForeignKeys.add(foreignColumnKey.build()));
-
-        tableBuilder.getChangeColumns()
+        tableBuilder.changeColumns
                 .forEach(column -> changeColumns.add(column.build()));
 
-        tableBuilder.getNewConstraints()
+        tableBuilder.newConstraints
                 .forEach(constraint -> newConstraints.add(constraint.build()));
 
-        tableBuilder.getNewIndexes()
+        tableBuilder.newIndexes
                 .forEach(index -> newIndexes.add(index.build()));
 
-        dropColumns = new ArrayList<>(tableBuilder.getDropColumns());
-        dropForeignKeys = new ArrayList<>(tableBuilder.getDropForeignKey());
-        dropConstraints = new ArrayList<>(tableBuilder.getDropConstraints());
-        dropIndexes = new ArrayList<>(tableBuilder.getDropIndexes());
+        dropColumns = tableBuilder.dropColumns;
+        dropConstraints = tableBuilder.dropConstraints;
+        dropIndexes = tableBuilder.dropIndexes;
 
+        rawSQL = tableBuilder.rawSQL;
+
+        partitions = tableBuilder.partitions != null ? tableBuilder.partitions.build() : null;
     }
 
     public String getTableName() {
@@ -67,14 +58,6 @@ public class Table {
 
     public Collection<Column> getChangeColumns() {
         return changeColumns;
-    }
-
-    public Collection<ForeignKey> getNewForeignKeys() {
-        return newForeignKeys;
-    }
-
-    public Collection<String> getDropForeignKeys() {
-        return dropForeignKeys;
     }
 
     public Collection<String> getDropColumns() {
@@ -97,202 +80,166 @@ public class Table {
         return dropIndexes;
     }
 
+    /**
+     * @return the rawSQL
+     */
+    public Collection<String> getRawSQL() {
+        return rawSQL;
+    }
+
+    /**
+     * @return the partitions
+     */
+    public PartitionSet getPartitions() {
+        return partitions;
+    }
+
+    public Stream<Partition> getPartitionStream() {
+        return isPartitioned() ? partitions.getPartitions().stream() : Stream.empty();
+    }
+
+    public boolean isPartitioned() {
+        return partitions != null && !partitions.isEmpty();
+    }
+
+    public boolean isSharded() {
+        return isPartitioned() && partitions.getPartitions().stream().anyMatch(Partition::isForeign);
+    }
+
     public static class Builder {
         private String tableName;
         private final Consumer<Table> tableConsumer;
+        private PartitionSet.Builder partitions;
         private List<Column.Builder> newColumnBuilders = new ArrayList<>();
         private List<Column.Builder> changeColumns = new ArrayList<>();
-        private Collection<ForeignKey.Builder> newForeignKeys = new ArrayList<>();
         private Collection<Constraint.Builder> newConstraints = new ArrayList<>();
         private Collection<Index.Builder> newIndexes = new ArrayList<>();
-        private Collection<String> dropForeignKey = new ArrayList<>();
         private Collection<String> dropColumns = new ArrayList<>();
         private Collection<String> dropConstraints = new ArrayList<>();
         private Collection<String> dropIndexes = new ArrayList<>();
+        private Collection<String> rawSQL = new ArrayList<>();
 
         public Builder(String tableName, Consumer<Table> tableConsumer) {
-            Assert.notNull(tableName, "tableName must not be null");
-            Assert.notNull(tableConsumer, "tableConsumer must not be null");
+            Objects.requireNonNull(tableName, "tableName must not be null");
+            Objects.requireNonNull(tableConsumer, "tableConsumer must not be null");
 
             this.tableName = tableName;
             this.tableConsumer = tableConsumer;
         }
 
-        private Column.Builder addNewColumn(String columnName, Column.TYPE type) {
-            Column.Builder builder = new Column.Builder(columnName, type);
+        public Table.Builder addPartitions(PartitionSet.TYPE type, Collection<Partition> partitions) {
+            PartitionSet.Builder builder = new PartitionSet.Builder(type);
+            builder.partitions(() -> partitions);
+            this.partitions = builder;
+            return this;
+        }
 
-            newColumnBuilders.add(builder);
-            return builder;
+        public Table.Builder addPartitions(PartitionSet.TYPE type, Consumer<PartitionSet.Builder> c) {
+            PartitionSet.Builder builder = new PartitionSet.Builder(type);
+            c.accept(builder);
+            this.partitions = builder;
+            return this;
         }
 
         public Table.Builder addColumn(String columnName, Column.TYPE type) {
-            addNewColumn(columnName, type);
-
+            Column.Builder builder = new Column.Builder(columnName, type);
+            newColumnBuilders.add(builder);
             return this;
         }
 
         public Table.Builder addColumn(String columnName, Column.TYPE type, Consumer<Column.Builder> column) {
-            Column.Builder columnBuilder = addNewColumn(columnName, type);
+            Column.Builder columnBuilder = new Column.Builder(columnName, type);
             column.accept(columnBuilder);
-
+            newColumnBuilders.add(columnBuilder);
             return this;
         }
 
-        private Column.Builder addChangeColumn(String columnName) {
-            Column.Builder builder = new Column.Builder(columnName);
-
-            changeColumns.add(builder);
-            return builder;
-        }
-
         public Table.Builder changeColumn(String columnName) {
-            addChangeColumn(columnName);
-
+            Column.Builder builder = new Column.Builder(columnName);
+            changeColumns.add(builder);
             return this;
         }
 
         public Table.Builder changeColumn(String columnName, Consumer<Column.Builder> column) {
-            Column.Builder columnBuilder = addChangeColumn(columnName);
+            Column.Builder columnBuilder = new Column.Builder(columnName);
             column.accept(columnBuilder);
-
+            changeColumns.add(columnBuilder);
             return this;
         }
 
-        private ForeignKey.Builder createNewForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
-            ForeignKey.Builder builder = new ForeignKey.Builder(constraintName, foreignTable, localKeys, foreignKeys);
-            newForeignKeys.add(
-                    builder
-            );
-
-            return builder;
-        }
-
-
-        public Builder addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys) {
-            createNewForeignKey(constraintName, foreignTable, localKeys, foreignKeys);
-
+        public Builder dropColumn(String columnName) {
+            this.dropColumns.add(columnName);
             return this;
         }
 
-        public Builder addForeignKey(String constraintName, String foreignTable, String localKey, String foreignKey) {
-            return addForeignKey(constraintName, foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey));
-        }
-
-        public Builder addForeignKey(String constraintName, String foreignTable, Collection<String> localKeys, Collection<String> foreignKeys, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
-            foreignKeyConsumer.accept(
-                    createNewForeignKey(constraintName, foreignTable, localKeys, foreignKeys)
-            );
-            return this;
-        }
-
-        public Builder addForeignKey(String constraintName, String foreignTable, String localKey, String foreignKey, Consumer<ForeignKey.Builder> foreignKeyConsumer) {
-            foreignKeyConsumer.accept(
-                    createNewForeignKey(constraintName, foreignTable, Arrays.asList(localKey), Arrays.asList(foreignKey))
-            );
-
-            return this;
-        }
-
-        @Deprecated
-        /**
-         * {@link Builder#addIndex(String, Index.TYPE, Collection)}
-         */
-        public Builder addConstraint(String constraintName, Constraint.TYPE type, Collection<String> columnNames) {
-            newConstraints.add(
-                    new Constraint.Builder(constraintName, type, columnNames)
-            );
-
-            return this;
-        }
-
-        @Deprecated
-        /**
-         * {@link Builder#dropIndex(String)}
-         */
-        public Builder dropConstraint(String constraintName) {
-            dropConstraints.add(constraintName);
-
-            return this;
-        }
-
-        @Deprecated
         /**
          * {@link Builder#addIndex(String, Index.TYPE, String)}
          */
         public Builder addConstraint(String constraintName, Constraint.TYPE type, String columnName) {
             return addConstraint(constraintName, type, Arrays.asList(columnName));
         }
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, String)}
+         */
+        public Builder addConstraint(String constraintName, Constraint.TYPE type, String... columnNames) {
+            return addConstraint(constraintName, type, Arrays.asList(columnNames));
+        }
 
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, Collection)}
+         */
+        public Builder addConstraint(String constraintName, Constraint.TYPE type, Collection<String> columnNames) {
+            newConstraints.add(new Constraint.Builder(constraintName, type, columnNames));
+            return this;
+        }
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, String)}
+         */
+        public Builder addConstraint(String constraintName, Constraint.TYPE type, Consumer<Constraint.Builder> consumer) {
+            Constraint.Builder constraintBuilder = new Constraint.Builder(constraintName, type);
+            consumer.accept(constraintBuilder);
+            newConstraints.add(constraintBuilder);
+            return this;
+        }
+        /**
+         * {@link Builder#dropIndex(String)}
+         */
+        public Builder dropConstraint(String constraintName) {
+            dropConstraints.add(constraintName);
+            return this;
+        }
 
-        public Builder addIndex(String constraintName, Index.TYPE type, Collection<String> columnNames) {
-            newIndexes.add(
-                    new Index.Builder(constraintName, type, columnNames)
-            );
+        public Builder addIndex(String indexName, Index.TYPE type, String columnName) {
+            return addIndex(indexName, type, Arrays.asList(columnName));
+        }
 
+        public Builder addIndex(String indexName, Index.TYPE type, String... columnName) {
+            return addIndex(indexName, type, Arrays.asList(columnName));
+        }
+
+        public Builder addIndex(String indexName, Index.TYPE type, Collection<String> columnNames) {
+            newIndexes.add(new Index.Builder(indexName, type, columnNames));
+            return this;
+        }
+
+        /**
+         * {@link Builder#addIndex(String, Index.TYPE, String)}
+         */
+        public Builder addIndex(String indexName, Index.TYPE type, Consumer<Index.Builder> consumer) {
+            Index.Builder constraintBuilder = new Index.Builder(indexName, type);
+            consumer.accept(constraintBuilder);
+            newIndexes.add(constraintBuilder);
             return this;
         }
 
         public Builder dropIndex(String indexName) {
             dropIndexes.add(indexName);
-
             return this;
         }
 
-        public Builder addIndex(String constraintName, Index.TYPE type, String columnName) {
-            return addIndex(constraintName, type, Arrays.asList(columnName));
-        }
-
-        public Builder dropForeignKey(String constraintName) {
-            this.dropForeignKey.add(constraintName);
-
+        public Builder addRawSQL(String sql) {
+            this.rawSQL.add(sql);
             return this;
-        }
-
-        public Builder dropColumn(String columnName) {
-            this.dropColumns.add(columnName);
-
-            return this;
-        }
-
-        public Collection<Constraint.Builder> getNewConstraints() {
-            return newConstraints;
-        }
-
-
-        public Collection<String> getDropConstraints() {
-            return dropConstraints;
-        }
-
-        public Collection<String> getDropForeignKey() {
-            return dropForeignKey;
-        }
-
-        public Collection<String> getDropColumns() {
-            return dropColumns;
-        }
-
-        public Collection<ForeignKey.Builder> getNewForeignKeys() {
-            return newForeignKeys;
-        }
-
-        public String getTableName() {
-            return tableName;
-        }
-
-        public List<Column.Builder> getNewColumns() {
-            return newColumnBuilders;
-        }
-
-        public List<Column.Builder> getChangeColumns() {
-            return changeColumns;
-        }
-
-        public Collection<Index.Builder> getNewIndexes() {
-            return newIndexes;
-        }
-
-        public Collection<String> getDropIndexes() {
-            return dropIndexes;
         }
 
         public Table build() {

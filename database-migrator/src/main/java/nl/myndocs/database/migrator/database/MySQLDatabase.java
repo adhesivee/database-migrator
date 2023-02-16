@@ -1,15 +1,16 @@
 package nl.myndocs.database.migrator.database;
 
-import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
-import nl.myndocs.database.migrator.database.query.option.ChangeTypeOptions;
-import nl.myndocs.database.migrator.definition.Column;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Objects;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import nl.myndocs.database.migrator.database.exception.CouldNotProcessException;
+import nl.myndocs.database.migrator.definition.Column;
 
 /**
  * Created by albert on 18-8-2017.
@@ -24,6 +25,17 @@ public class MySQLDatabase extends DefaultDatabase {
         this.connection = connection;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected String dropConstraintSQL(String tableName, String constraintName) {
+        // TODO Auto-generated method stub
+        return super.dropConstraintSQL(tableName, constraintName);
+    }
+    // TODO query MySQL information schema to find out,
+    // what kind of constraint is that due to idiotic MySQL dialect.
+    /*
     @Override
     public void dropForeignKey(String constraintName) {
         String dropConstraintFormat = "ALTER TABLE %s DROP FOREIGN KEY %s";
@@ -36,6 +48,7 @@ public class MySQLDatabase extends DefaultDatabase {
 
         executeInStatement(dropConstraintQuery);
     }
+    */
 
     @Override
     protected String escapeString(String line) {
@@ -58,21 +71,21 @@ public class MySQLDatabase extends DefaultDatabase {
     }
 
     @Override
-    public void changeType(Column.TYPE type, ChangeTypeOptions changeTypeOptions) {
-        String alterTypeFormat = "ALTER TABLE %s MODIFY COLUMN %s %s";
+    public void changeType() {
 
+        String alterTypeFormat = "ALTER TABLE %s MODIFY COLUMN %s %s";
         executeInStatement(
                 String.format(
                         alterTypeFormat,
                         getAlterTableName(),
                         getAlterColumnName(),
-                        getNativeColumnDefinition(type, new ChangeTypeOptions())
+                        getNativeColumnDefinition(getCurrentColumn())
                 )
         );
     }
 
     @Override
-    public void rename(String rename) {
+    public void rename() {
         DatabaseColumn databaseColumn = loadDatabaseColumn(
                 getAlterTableName(),
                 getAlterColumnName()
@@ -83,7 +96,7 @@ public class MySQLDatabase extends DefaultDatabase {
                         "ALTER TABLE %s CHANGE %s %s %s %s %s",
                         getAlterTableName(),
                         getAlterColumnName(),
-                        rename,
+                        getCurrentColumn().getRename(),
                         databaseColumn.getColumnType(),
                         (databaseColumn.getColumnDefault() != null && !databaseColumn.getColumnDefault().isEmpty() ? "DEFAULT '" + databaseColumn.getColumnDefault() + "'" : ""),
                         databaseColumn.getNotNullValue()
@@ -92,29 +105,28 @@ public class MySQLDatabase extends DefaultDatabase {
     }
 
     private DatabaseColumn loadDatabaseColumn(String tableName, String columnName) {
-        try {
-            Statement statement = connection.createStatement();
-            statement.execute("DESCRIBE " + tableName);
+        try (Statement statement = connection.createStatement()) {
 
-            ResultSet resultSet = statement.getResultSet();
+            statement.execute("DESCRIBE " + tableName);
 
             String notNullValue = "";
             String columnType = "";
             String columnDefault = "";
 
-            while (resultSet.next()) {
-                if (resultSet.getString("Field").equals(columnName)) {
-                    if ("NO".equals(resultSet.getString("Null"))) {
-                        notNullValue = "NOT NULL";
+            try (ResultSet resultSet = statement.getResultSet()) {
+
+                while (resultSet.next()) {
+                    if (resultSet.getString("Field").equals(columnName)) {
+                        if ("NO".equals(resultSet.getString("Null"))) {
+                            notNullValue = "NOT NULL";
+                        }
+
+                        columnType = resultSet.getString("Type");
+                        columnDefault = resultSet.getString("Default");
+
                     }
-
-                    columnType = resultSet.getString("Type");
-                    columnDefault = resultSet.getString("Default");
-
                 }
             }
-
-            statement.close();
 
             return new DatabaseColumn(notNullValue, columnType, columnDefault);
         } catch (SQLException sqlException) {
@@ -123,34 +135,23 @@ public class MySQLDatabase extends DefaultDatabase {
     }
 
     @Override
-    public String getNativeColumnDefinition(Column.TYPE columnType) {
-        switch (columnType) {
-            case BIG_INTEGER:
-            case INTEGER:
-            case UUID:
-                return getNativeColumnDefinition(columnType, new ChangeTypeOptions());
-            case VARCHAR:
-            case CHAR:
-                return getNativeColumnDefinition(columnType, ChangeTypeOptions.ofSize(255));
-        }
+    protected String getNativeColumnDefinition(Column column) {
 
-
-        return super.getNativeColumnDefinition(columnType);
-    }
-
-    @Override
-    protected String getNativeColumnDefinition(Column.TYPE columnType, ChangeTypeOptions changeTypeOptions) {
-        switch (columnType) {
+        switch (column.getType()) {
             case BIG_INTEGER:
             case SMALL_INTEGER:
             case INTEGER:
-                return super.getNativeColumnDefinition(columnType) + " " + (changeTypeOptions.getAutoIncrement().orElse(false) ? "AUTO_INCREMENT" : "");
+                return super.getNativeColumnDefinition(column)
+                        + " "
+                        + (Objects.nonNull(column.getAutoIncrement()) && column.getAutoIncrement() ? "AUTO_INCREMENT" : "");
             case UUID:
                 logger.warn("UUID not supported, creating CHAR(36) instead");
-                return getNativeColumnDefinition(Column.TYPE.CHAR, ChangeTypeOptions.ofSize(36));
+                return "CHAR(36)";
+            default:
+                break;
         }
 
-        return super.getNativeColumnDefinition(columnType, changeTypeOptions);
+        return super.getNativeColumnDefinition(column);
     }
 
     private static class DatabaseColumn {
